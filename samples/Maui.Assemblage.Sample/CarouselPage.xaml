@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Maui.Assemblage.Sample.CarouselPage"
+             Title="Carousel Demo" SafeAreaEdges="None">
+
+    <Grid RowDefinitions="Auto,Auto,*" Padding="16" RowSpacing="8" SafeAreaEdges="None">
+
+        <Label AutomationId="CarouselTitle"
+               Text="CarouselLayoutProvider Demo"
+               FontSize="20" FontAttributes="Bold"
+               HorizontalOptions="Center" />
+
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" HorizontalOptions="Center">
+            <Label x:Name="CarouselInfo" AutomationId="CarouselInfo" Text="Page 0 of 8" VerticalOptions="Center" />
+            <Button AutomationId="PrevBtn" Text="◀ Prev" Clicked="OnPrevClicked" />
+            <Button AutomationId="NextBtn" Text="Next ▶" Clicked="OnNextClicked" />
+        </HorizontalStackLayout>
+
+        <ScrollView Grid.Row="2" Orientation="Horizontal" AutomationId="CarouselScroll" Margin="-16,0,-16,-16">
+            <AbsoluteLayout x:Name="CarouselSurface" AutomationId="CarouselSurface"
+                            Padding="16,0,16,16"
+                            BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#1A1A1A}" />
+        </ScrollView>
+    </Grid>
+
+</ContentPage>

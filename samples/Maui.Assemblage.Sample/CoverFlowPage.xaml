@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ma="clr-namespace:Maui.Assemblage;assembly=Maui.Assemblage"
+             x:Class="Maui.Assemblage.Sample.CoverFlowPage"
+             Title="CoverFlow" SafeAreaEdges="None">
+
+    <Grid RowDefinitions="Auto,Auto,*" Padding="0" RowSpacing="0"
+          BackgroundColor="{AppThemeBinding Light=#1A1A2E, Dark=#0F0F1A}" SafeAreaEdges="None">
+
+        <Label AutomationId="CoverFlowTitle"
+               Text="CoverFlow"
+               FontSize="22" FontAttributes="Bold"
+               TextColor="White"
+               HorizontalOptions="Center"
+               Margin="0,12,0,4" />
+
+        <Grid Grid.Row="1" Padding="12,0" RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto,*" RowSpacing="4" ColumnSpacing="8">
+            <Label Text="Snap:" TextColor="#BBFFFFFF" FontSize="12" VerticalOptions="Center"/>
+            <Switch Grid.Column="1" x:Name="SnapSwitch" IsToggled="True" Toggled="OnSnapToggled"
+                    HorizontalOptions="Start"/>
+            <Label Grid.Column="2" Text="Spacing:" TextColor="#BBFFFFFF" FontSize="12" VerticalOptions="Center"/>
+            <Slider Grid.Column="3" x:Name="SpacingSlider" Minimum="-80" Maximum="20" Value="-40"
+                    ValueChanged="OnSpacingChanged" ThumbColor="#6750A4"/>
+            <Label Grid.Row="1" Text="Rotation:" TextColor="#BBFFFFFF" FontSize="12" VerticalOptions="Center"/>
+            <Slider Grid.Row="1" Grid.Column="1" x:Name="RotationSlider" Minimum="0" Maximum="80" Value="55"
+                    ValueChanged="OnRotationChanged" ThumbColor="#6750A4"/>
+            <Label Grid.Row="1" Grid.Column="2" Text="Scale:" TextColor="#BBFFFFFF" FontSize="12" VerticalOptions="Center"/>
+            <Slider Grid.Row="1" Grid.Column="3" x:Name="ScaleSlider" Minimum="0.3" Maximum="1.0" Value="0.65"
+                    ValueChanged="OnScaleChanged" ThumbColor="#6750A4"/>
+        </Grid>
+
+        <ma:LibraryHostView Grid.Row="2"
+                             x:Name="CoverFlowView"
+                             AutomationId="CoverFlowView"
+                             ItemWidth="220"
+                             ItemHeight="300"
+                             ItemSpacing="-40"
+                             MinOpacity="0.3"
+                             MinScale="0.65"
+                             MaxRotation="55"
+                             PerspectiveDepth="2.5"
+                             SideOffset="90">
+
+            <ma:LibraryHostView.ItemTemplate>
+                <DataTemplate>
+                    <Border BackgroundColor="{Binding Color}"
+                            StrokeShape="RoundRectangle 16"
+                            StrokeThickness="0"
+                            Shadow="{OnPlatform Default={Shadow Brush=Black, Offset='0,4', Radius=12, Opacity=0.5}}">
+                        <Grid RowDefinitions="*,Auto,Auto" Padding="20">
+                            <Label Text="{Binding Icon}"
+                                   FontSize="60"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                            <Label Grid.Row="1"
+                                   Text="{Binding Title}"
+                                   FontSize="18" FontAttributes="Bold"
+                                   TextColor="White"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Grid.Row="2"
+                                   Text="{Binding Subtitle}"
+                                   FontSize="13"
+                                   TextColor="#BBFFFFFF"
+                                   HorizontalTextAlignment="Center" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ma:LibraryHostView.ItemTemplate>
+
+        </ma:LibraryHostView>
+
+    </Grid>
+
+</ContentPage>

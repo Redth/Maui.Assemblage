@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ma="clr-namespace:Maui.Assemblage;assembly=Maui.Assemblage"
+             x:Class="Maui.Assemblage.Sample.SelectionPage"
+             Title="Selection" SafeAreaEdges="None">
+
+    <Grid RowDefinitions="Auto,Auto,*" Padding="16" RowSpacing="8" SafeAreaEdges="None">
+
+        <Label AutomationId="SelectionTitle"
+               Text="Selection Demo"
+               FontSize="22" FontAttributes="Bold"
+               HorizontalOptions="Center" />
+
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" HorizontalOptions="Center">
+            <Label x:Name="InfoLabel" AutomationId="SelectionInfo" Text="Single · 0 selected" VerticalOptions="Center" />
+            <Button AutomationId="SelectionToggle" x:Name="ModeBtn" Text="Multi" Clicked="OnToggleModeClicked" />
+            <Button AutomationId="SelectionClear" Text="Clear" Clicked="OnClearClicked" />
+        </HorizontalStackLayout>
+
+        <ma:ListHostView Grid.Row="2"
+                         x:Name="SelectionList"
+                         AutomationId="SelectionList"
+                         Margin="-16,0,-16,-16"
+                         ContentInset="16,0,16,16"
+                         ItemExtent="52"
+                         Spacing="4"
+                         SelectionMode="Single">
+
+            <ma:ListHostView.ItemTemplate>
+                <DataTemplate>
+                    <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#2A2A2A}"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="{AppThemeBinding Light=#E0E0E0, Dark=#444444}"
+                            StrokeThickness="1"
+                            Padding="12,8">
+                        <HorizontalStackLayout Spacing="8">
+                            <Label Text="{Binding .}"
+                                   FontSize="16"
+                                   VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </ma:ListHostView.ItemTemplate>
+
+        </ma:ListHostView>
+
+    </Grid>
+
+</ContentPage>

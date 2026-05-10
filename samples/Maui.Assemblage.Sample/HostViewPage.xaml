@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ma="clr-namespace:Maui.Assemblage;assembly=Maui.Assemblage"
+             x:Class="Maui.Assemblage.Sample.HostViewPage"
+             Title="HostView Demo" SafeAreaEdges="None">
+
+    <Grid RowDefinitions="Auto,Auto,*" Padding="0" RowSpacing="8" SafeAreaEdges="None">
+
+        <Label AutomationId="HostViewTitle"
+               Text="CollectionHostView Demo"
+               FontSize="22" FontAttributes="Bold"
+               HorizontalOptions="Center"
+               Margin="16,16,16,0" />
+
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" HorizontalOptions="Center" Margin="16,0,16,0">
+            <Label x:Name="InfoLabel" AutomationId="HostViewInfo" Text="List · 50 items" VerticalOptions="Center" />
+            <Button AutomationId="HostViewAdd" Text="+ 10" Clicked="OnAddClicked" />
+            <Button AutomationId="HostViewRemove" Text="- 10" Clicked="OnRemoveClicked" />
+            <Button AutomationId="HostViewToggle" x:Name="ToggleBtn" Text="Grid" Clicked="OnToggleClicked" />
+        </HorizontalStackLayout>
+
+        <ma:ListHostView Grid.Row="2"
+                         x:Name="HostView"
+                         AutomationId="HostView"
+                         ContentInset="16,0,16,16"
+                         ItemExtent="52"
+                         Spacing="4"
+                         EmptyView="No items yet">
+
+            <ma:ListHostView.ItemTemplate>
+                <DataTemplate>
+                    <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#2A2A2A}"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="{AppThemeBinding Light=#E0E0E0, Dark=#444444}"
+                            StrokeThickness="1"
+                            Padding="12,8">
+                        <Label Text="{Binding .}"
+                               FontSize="16"
+                               VerticalTextAlignment="Center" />
+                    </Border>
+                </DataTemplate>
+            </ma:ListHostView.ItemTemplate>
+
+            <ma:ListHostView.EmptyViewTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="8">
+                            <Label Text="📭" FontSize="48" HorizontalTextAlignment="Center" />
+                            <Label Text="{Binding .}" FontSize="18" TextColor="Gray" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </DataTemplate>
+            </ma:ListHostView.EmptyViewTemplate>
+
+        </ma:ListHostView>
+
+    </Grid>
+
+</ContentPage>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Maui.Assemblage.Sample.MainPage"
+             Title="Assemblage Demo" SafeAreaEdges="None">
+
+    <Grid RowDefinitions="Auto,Auto,*" Padding="16" RowSpacing="8" SafeAreaEdges="None">
+
+        <Label AutomationId="TitleLabel"
+               Text="Maui.Assemblage Engine Demo"
+               FontSize="22" FontAttributes="Bold"
+               HorizontalOptions="Center" />
+
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" HorizontalOptions="Center">
+            <Label x:Name="InfoLabel" AutomationId="InfoLabel" Text="List · 50 items" VerticalOptions="Center" />
+            <Button AutomationId="Add10Btn" Text="+ 10" Clicked="OnAdd10Clicked" />
+            <Button AutomationId="Remove10Btn" Text="- 10" Clicked="OnRemove10Clicked" />
+            <Button AutomationId="ToggleLayoutBtn" Text="Grid" Clicked="OnToggleLayoutClicked" />
+        </HorizontalStackLayout>
+
+        <ScrollView Grid.Row="2" AutomationId="ItemScroll" Margin="-16,0,-16,-16">
+            <AbsoluteLayout x:Name="ItemSurface" AutomationId="ItemSurface"
+                            Padding="16,0,16,16"
+                            BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#1A1A1A}" />
+        </ScrollView>
+    </Grid>
+
+</ContentPage>

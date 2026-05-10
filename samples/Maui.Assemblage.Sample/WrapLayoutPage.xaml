@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ma="clr-namespace:Maui.Assemblage;assembly=Maui.Assemblage"
+             x:Class="Maui.Assemblage.Sample.WrapLayoutPage"
+             Title="Wrap" SafeAreaEdges="None">
+
+    <Grid RowDefinitions="Auto,*" Padding="16" RowSpacing="8" SafeAreaEdges="None">
+
+        <Label AutomationId="WrapTitle"
+               Text="Tag Cloud (Variable-Width Wrap)"
+               FontSize="22" FontAttributes="Bold"
+               HorizontalOptions="Center" />
+
+        <ma:WrapHostView Grid.Row="1"
+                          x:Name="WrapView"
+                          AutomationId="WrapView"
+                          Margin="-16,0,-16,-16"
+                          ContentInset="16,0,16,16"
+                          ItemWidth="80"
+                          ItemHeight="36"
+                          HorizontalSpacing="8"
+                          VerticalSpacing="8">
+
+            <ma:WrapHostView.ItemTemplate>
+                <DataTemplate>
+                    <Border BackgroundColor="{Binding Color}"
+                            StrokeShape="RoundRectangle 18"
+                            StrokeThickness="0"
+                            Padding="14,0">
+                        <Label Text="{Binding Name}"
+                               FontSize="13"
+                               TextColor="White"
+                               MaxLines="1"
+                               LineBreakMode="TailTruncation"
+                               VerticalTextAlignment="Center"
+                               HorizontalTextAlignment="Center" />
+                    </Border>
+                </DataTemplate>
+            </ma:WrapHostView.ItemTemplate>
+
+        </ma:WrapHostView>
+
+    </Grid>
+
+</ContentPage>

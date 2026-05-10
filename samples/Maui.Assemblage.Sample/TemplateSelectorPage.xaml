@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ma="clr-namespace:Maui.Assemblage;assembly=Maui.Assemblage"
+             xmlns:local="clr-namespace:Maui.Assemblage.Sample"
+             x:Class="Maui.Assemblage.Sample.TemplateSelectorPage"
+             Title="Template Selector" SafeAreaEdges="None">
+
+    <ContentPage.Resources>
+
+        <DataTemplate x:Key="SentTemplate">
+            <Border BackgroundColor="#DCF8C6" Padding="12,8"
+                    StrokeThickness="0" HorizontalOptions="End"
+                    Margin="60,4,16,4" MaximumWidthRequest="280">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16,4,16,16"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="{Binding Text}" FontSize="14" TextColor="Black"/>
+                    <Label Text="{Binding Timestamp, StringFormat='{0:h:mm tt}'}"
+                           FontSize="10" TextColor="#888888" HorizontalTextAlignment="End"/>
+                </VerticalStackLayout>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ReceivedTemplate">
+            <Border BackgroundColor="#FFFFFF" Padding="12,8"
+                    Stroke="#E0E0E0" StrokeThickness="1"
+                    HorizontalOptions="Start"
+                    Margin="16,4,60,4" MaximumWidthRequest="280">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="4,16,16,16"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="{Binding Sender}" FontSize="11"
+                           FontAttributes="Bold" TextColor="#6750A4"/>
+                    <Label Text="{Binding Text}" FontSize="14" TextColor="Black"/>
+                    <Label Text="{Binding Timestamp, StringFormat='{0:h:mm tt}'}"
+                           FontSize="10" TextColor="#AAAAAA"/>
+                </VerticalStackLayout>
+            </Border>
+        </DataTemplate>
+
+        <local:ChatTemplateSelector x:Key="ChatSelector"
+                                     SentTemplate="{StaticResource SentTemplate}"
+                                     ReceivedTemplate="{StaticResource ReceivedTemplate}"/>
+
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*" Padding="0" RowSpacing="0" SafeAreaEdges="None">
+
+        <Grid Padding="16,8" ColumnDefinitions="*,Auto" BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2C2C2E}">
+            <Label Text="💬 Chat Demo" FontSize="18" FontAttributes="Bold" VerticalOptions="Center" />
+            <Label Grid.Column="1" x:Name="CountLabel" Text="40 messages" FontSize="12"
+                   TextColor="Gray" VerticalOptions="Center" />
+        </Grid>
+
+        <ma:ListHostView Grid.Row="1"
+                          x:Name="ChatList"
+                          AutomationId="ChatList"
+                          ItemExtent="80"
+                          ItemTemplateSelector="{StaticResource ChatSelector}"
+                          Orientation="Vertical" />
+
+    </Grid>
+
+</ContentPage>

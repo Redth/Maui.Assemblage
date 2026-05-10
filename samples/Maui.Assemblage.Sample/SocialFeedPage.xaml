@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ma="clr-namespace:Maui.Assemblage;assembly=Maui.Assemblage"
+             xmlns:local="clr-namespace:Maui.Assemblage.Sample"
+             x:Class="Maui.Assemblage.Sample.SocialFeedPage"
+             Title="Social Feed" SafeAreaEdges="None">
+
+    <ContentPage.Resources>
+
+        <!-- TEXT POST: avatar + name/handle + text + action bar -->
+        <DataTemplate x:Key="TextPostTemplate">
+            <Border Padding="0" Margin="0,0,0,1" StrokeThickness="0"
+                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C1C1E}">
+                <Grid ColumnDefinitions="52,*" Padding="14,12" ColumnSpacing="10">
+                    <!-- Avatar -->
+                    <Border WidthRequest="40" HeightRequest="40"
+                            StrokeShape="RoundRectangle 20" StrokeThickness="0"
+                            BackgroundColor="{Binding AvatarColor}"
+                            VerticalOptions="Start">
+                        <Label Text="{Binding Initials}" FontSize="16" FontAttributes="Bold"
+                               TextColor="White" HorizontalTextAlignment="Center"
+                               VerticalTextAlignment="Center"/>
+                    </Border>
+
+                    <!-- Content -->
+                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                        <!-- Author row -->
+                        <HorizontalStackLayout Spacing="6">
+                            <Label Text="{Binding DisplayName}" FontSize="15" FontAttributes="Bold"/>
+                            <Label Text="{Binding Handle}" FontSize="13" TextColor="#888888"/>
+                            <Label Text="·" FontSize="13" TextColor="#888888"/>
+                            <Label Text="{Binding TimeAgo}" FontSize="13" TextColor="#888888"/>
+                        </HorizontalStackLayout>
+
+                        <!-- Body text -->
+                        <Label Text="{Binding Body}" FontSize="14" LineBreakMode="WordWrap"
+                               MaxLines="6"/>
+
+                        <!-- Action bar -->
+                        <Grid ColumnDefinitions="*,*,*,*" Margin="0,4,0,0">
+                            <HorizontalStackLayout Spacing="4">
+                                <Label Text="💬" FontSize="13"/>
+                                <Label Text="{Binding Replies}" FontSize="12" TextColor="#888888"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="🔄" FontSize="13"/>
+                                <Label Text="{Binding Reposts}" FontSize="12" TextColor="#888888"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="2" Spacing="4">
+                                <Label Text="❤️" FontSize="13"/>
+                                <Label Text="{Binding Likes}" FontSize="12" TextColor="#888888"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="3" Spacing="4">
+                                <Label Text="📤" FontSize="13"/>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- IMAGE POST: avatar + text + color swatch image area + actions -->
+        <DataTemplate x:Key="ImagePostTemplate">
+            <Border Padding="0" Margin="0,0,0,1" StrokeThickness="0"
+                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C1C1E}">
+                <Grid ColumnDefinitions="52,*" Padding="14,12" ColumnSpacing="10">
+                    <Border WidthRequest="40" HeightRequest="40"
+                            StrokeShape="RoundRectangle 20" StrokeThickness="0"
+                            BackgroundColor="{Binding AvatarColor}"
+                            VerticalOptions="Start">
+                        <Label Text="{Binding Initials}" FontSize="16" FontAttributes="Bold"
+                               TextColor="White" HorizontalTextAlignment="Center"
+                               VerticalTextAlignment="Center"/>
+                    </Border>
+
+                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                        <HorizontalStackLayout Spacing="6">
+                            <Label Text="{Binding DisplayName}" FontSize="15" FontAttributes="Bold"/>
+                            <Label Text="{Binding Handle}" FontSize="13" TextColor="#888888"/>
+                            <Label Text="·" FontSize="13" TextColor="#888888"/>
+                            <Label Text="{Binding TimeAgo}" FontSize="13" TextColor="#888888"/>
+                        </HorizontalStackLayout>
+
+                        <Label Text="{Binding Body}" FontSize="14" LineBreakMode="WordWrap"
+                               MaxLines="3"/>
+
+                        <!-- Image area (simulated with colored box + caption) -->
+                        <Border StrokeShape="RoundRectangle 12" StrokeThickness="0"
+                                BackgroundColor="{Binding ImageColor}"
+                                HeightRequest="160" Margin="0,2">
+                            <Grid>
+                                <Label Text="{Binding ImageEmoji}" FontSize="48"
+                                       HorizontalOptions="Center" VerticalOptions="Center"/>
+                                <Border BackgroundColor="#80000000" Padding="8,4"
+                                        StrokeThickness="0"
+                                        HorizontalOptions="Start" VerticalOptions="End"
+                                        Margin="8">
+                                    <Label Text="{Binding ImageCaption}" FontSize="11"
+                                           TextColor="White"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <Grid ColumnDefinitions="*,*,*,*" Margin="0,4,0,0">
+                            <HorizontalStackLayout Spacing="4">
+                                <Label Text="💬" FontSize="13"/>
+                                <Label Text="{Binding Replies}" FontSize="12" TextColor="#888888"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="🔄" FontSize="13"/>
+                                <Label Text="{Binding Reposts}" FontSize="12" TextColor="#888888"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="2" Spacing="4">
+                                <Label Text="❤️" FontSize="13"/>
+                                <Label Text="{Binding Likes}" FontSize="12" TextColor="#888888"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="3" Spacing="4">
+                                <Label Text="📤" FontSize="13"/>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- QUOTE POST: avatar + text + quoted post card + actions -->
+        <DataTemplate x:Key="QuotePostTemplate">
+            <Border Padding="0" Margin="0,0,0,1" StrokeThickness="0"
+                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C1C1E}">
+                <Grid ColumnDefinitions="52,*" Padding="14,12" ColumnSpacing="10">
+                    <Border WidthRequest="40" HeightRequest="40"
+                            StrokeShape="RoundRectangle 20" StrokeThickness="0"
+                            BackgroundColor="{Binding AvatarColor}"
+                            VerticalOptions="Start">
+                        <Label Text="{Binding Initials}" FontSize="16" FontAttributes="Bold"
+                               TextColor="White" HorizontalTextAlignment="Center"
+                               VerticalTextAlignment="Center"/>
+                    </Border>
+
+                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                        <HorizontalStackLayout Spacing="6">
+                            <Label Text="{Binding DisplayName}" FontSize="15" FontAttributes="Bold"/>
+                            <Label Text="{Binding Handle}" FontSize="13" TextColor="#888888"/>
+                            <Label Text="·" FontSize="13" TextColor="#888888"/>
+                            <Label Text="{Binding TimeAgo}" FontSize="13" TextColor="#888888"/>
+                        </HorizontalStackLayout>
+
+                        <Label Text="{Binding Body}" FontSize="14" LineBreakMode="WordWrap"
+                               MaxLines="3"/>
+
+                        <!-- Quoted post card -->
+                        <Border StrokeShape="RoundRectangle 12"
+                                Stroke="{AppThemeBinding Light=#E0E0E0, Dark=#444444}"
+                                StrokeThickness="1" Padding="10,8" Margin="0,2"
+                                BackgroundColor="{AppThemeBinding Light=#FAFAFA, Dark=#2A2A2A}">
+                            <VerticalStackLayout Spacing="4">
+                                <HorizontalStackLayout Spacing="6">
+                                    <Border WidthRequest="18" HeightRequest="18"
+                                            StrokeShape="RoundRectangle 9" StrokeThickness="0"
+                                            BackgroundColor="{Binding QuoteAvatarColor}">
+                                        <Label Text="{Binding QuoteInitials}" FontSize="8"
+                                               FontAttributes="Bold" TextColor="White"
+                                               HorizontalTextAlignment="Center"
+                                               VerticalTextAlignment="Center"/>
+                                    </Border>
+                                    <Label Text="{Binding QuoteName}" FontSize="13"
+                                           FontAttributes="Bold"/>
+                                    <Label Text="{Binding QuoteHandle}" FontSize="12"
+                                           TextColor="#888888"/>
+                                </HorizontalStackLayout>
+                                <Label Text="{Binding QuoteBody}" FontSize="13"
+                                       TextColor="{AppThemeBinding Light=#333333, Dark=#CCCCCC}"
+                                       LineBreakMode="WordWrap" MaxLines="3"/>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Grid ColumnDefinitions="*,*,*,*" Margin="0,4,0,0">
+                            <HorizontalStackLayout Spacing="4">
+                                <Label Text="💬" FontSize="13"/>
+                                <Label Text="{Binding Replies}" FontSize="12" TextColor="#888888"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="🔄" FontSize="13"/>
+                                <Label Text="{Binding Reposts}" FontSize="12" TextColor="#888888"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="2" Spacing="4">
+                                <Label Text="❤️" FontSize="13"/>
+                                <Label Text="{Binding Likes}" FontSize="12" TextColor="#888888"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="3" Spacing="4">
+                                <Label Text="📤" FontSize="13"/>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- POLL POST: avatar + question + poll options with progress bars + actions -->
+        <DataTemplate x:Key="PollPostTemplate">
+            <Border Padding="0" Margin="0,0,0,1" StrokeThickness="0"
+                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C1C1E}">
+                <Grid ColumnDefinitions="52,*" Padding="14,12" ColumnSpacing="10">
+                    <Border WidthRequest="40" HeightRequest="40"
+                            StrokeShape="RoundRectangle 20" StrokeThickness="0"
+                            BackgroundColor="{Binding AvatarColor}"
+                            VerticalOptions="Start">
+                        <Label Text="{Binding Initials}" FontSize="16" FontAttributes="Bold"
+                               TextColor="White" HorizontalTextAlignment="Center"
+                               VerticalTextAlignment="Center"/>
+                    </Border>
+
+                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                        <HorizontalStackLayout Spacing="6">
+                            <Label Text="{Binding DisplayName}" FontSize="15" FontAttributes="Bold"/>
+                            <Label Text="{Binding Handle}" FontSize="13" TextColor="#888888"/>
+                            <Label Text="·" FontSize="13" TextColor="#888888"/>
+                            <Label Text="{Binding TimeAgo}" FontSize="13" TextColor="#888888"/>
+                        </HorizontalStackLayout>
+
+                        <Label Text="{Binding Body}" FontSize="15" FontAttributes="Bold"
+                               LineBreakMode="WordWrap"/>
+
+                        <!-- Poll options -->
+                        <VerticalStackLayout Spacing="6" Margin="0,2">
+                            <Grid HeightRequest="36">
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="0"
+                                        BackgroundColor="{AppThemeBinding Light=#E8F4FD, Dark=#1A3A4A}"/>
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="0"
+                                        BackgroundColor="{AppThemeBinding Light=#C5E3F6, Dark=#2A5A6A}"
+                                        HorizontalOptions="Start"
+                                        WidthRequest="{Binding PollBar1Width}"/>
+                                <HorizontalStackLayout Padding="12,0" Spacing="8">
+                                    <Label Text="{Binding PollOption1}" FontSize="13"
+                                           VerticalTextAlignment="Center"/>
+                                    <Label Text="{Binding PollPct1}" FontSize="12"
+                                           FontAttributes="Bold" TextColor="#3498DB"
+                                           VerticalTextAlignment="Center"
+                                           HorizontalOptions="End"/>
+                                </HorizontalStackLayout>
+                            </Grid>
+                            <Grid HeightRequest="36">
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="0"
+                                        BackgroundColor="{AppThemeBinding Light=#E8F4FD, Dark=#1A3A4A}"/>
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="0"
+                                        BackgroundColor="{AppThemeBinding Light=#C5E3F6, Dark=#2A5A6A}"
+                                        HorizontalOptions="Start"
+                                        WidthRequest="{Binding PollBar2Width}"/>
+                                <HorizontalStackLayout Padding="12,0" Spacing="8">
+                                    <Label Text="{Binding PollOption2}" FontSize="13"
+                                           VerticalTextAlignment="Center"/>
+                                    <Label Text="{Binding PollPct2}" FontSize="12"
+                                           FontAttributes="Bold" TextColor="#3498DB"
+                                           VerticalTextAlignment="Center"
+                                           HorizontalOptions="End"/>
+                                </HorizontalStackLayout>
+                            </Grid>
+                            <Grid HeightRequest="36">
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="0"
+                                        BackgroundColor="{AppThemeBinding Light=#E8F4FD, Dark=#1A3A4A}"/>
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="0"
+                                        BackgroundColor="{AppThemeBinding Light=#C5E3F6, Dark=#2A5A6A}"
+                                        HorizontalOptions="Start"
+                                        WidthRequest="{Binding PollBar3Width}"/>
+                                <HorizontalStackLayout Padding="12,0" Spacing="8">
+                                    <Label Text="{Binding PollOption3}" FontSize="13"
+                                           VerticalTextAlignment="Center"/>
+                                    <Label Text="{Binding PollPct3}" FontSize="12"
+                                           FontAttributes="Bold" TextColor="#3498DB"
+                                           VerticalTextAlignment="Center"
+                                           HorizontalOptions="End"/>
+                                </HorizontalStackLayout>
+                            </Grid>
+                            <Label Text="{Binding PollInfo}" FontSize="11" TextColor="#888888"/>
+                        </VerticalStackLayout>
+
+                        <Grid ColumnDefinitions="*,*,*,*" Margin="0,4,0,0">
+                            <HorizontalStackLayout Spacing="4">
+                                <Label Text="💬" FontSize="13"/>
+                                <Label Text="{Binding Replies}" FontSize="12" TextColor="#888888"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="🔄" FontSize="13"/>
+                                <Label Text="{Binding Reposts}" FontSize="12" TextColor="#888888"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="2" Spacing="4">
+                                <Label Text="❤️" FontSize="13"/>
+                                <Label Text="{Binding Likes}" FontSize="12" TextColor="#888888"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="3" Spacing="4">
+                                <Label Text="📤" FontSize="13"/>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <local:FeedTemplateSelector x:Key="FeedSelector"
+            TextPostTemplate="{StaticResource TextPostTemplate}"
+            ImagePostTemplate="{StaticResource ImagePostTemplate}"
+            QuotePostTemplate="{StaticResource QuotePostTemplate}"
+            PollPostTemplate="{StaticResource PollPostTemplate}"/>
+
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*" Padding="0" RowSpacing="0" SafeAreaEdges="None"
+          BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#000000}">
+
+        <Grid Padding="16,8" ColumnDefinitions="*,Auto"
+              BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C1C1E}">
+            <Label Text="🌐 Social Feed" FontSize="20" FontAttributes="Bold" VerticalOptions="Center"/>
+            <Label Grid.Column="1" x:Name="CountLabel" FontSize="12" TextColor="Gray"
+                   VerticalOptions="Center"/>
+        </Grid>
+
+        <ma:ListHostView Grid.Row="1"
+                          x:Name="FeedList"
+                          AutomationId="FeedList"
+                          ItemExtent="160"
+                          Spacing="1"
+                          ItemTemplateSelector="{StaticResource FeedSelector}"
+                          Orientation="Vertical"/>
+
+    </Grid>
+
+</ContentPage>

@@ -427,3 +427,32 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# .NET package output
+*.nupkg
+*.snupkg
+
+# Test and coverage output
+TestResults/
+coverage/
+lcov.info
+
+# MAUI/Xamarin generated app packages and native build output
+*.apk
+*.aab
+*.ipa
+*.app
+*.appx
+*.appxbundle
+*.msixbundle
+*.xcarchive
+*.dSYM/
+DerivedData/
+*.mlaunch
+
+# macOS
+.DS_Store
+
+# Local tool/agent state
+.claude/
+.copilot/

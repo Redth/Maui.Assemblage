@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ma="clr-namespace:Maui.Assemblage;assembly=Maui.Assemblage"
+             x:Class="Maui.Assemblage.Sample.HorizontalListPage"
+             Title="HList" SafeAreaEdges="None">
+
+    <Grid RowDefinitions="Auto,200,Auto,200,*" Padding="16" RowSpacing="16" SafeAreaEdges="None">
+
+        <Label AutomationId="HListTitle"
+               Text="Horizontal Layouts"
+               FontSize="22" FontAttributes="Bold"
+               HorizontalOptions="Center" />
+
+        <!-- Horizontal List -->
+        <VerticalStackLayout Grid.Row="1" Spacing="4">
+            <Label Text="Horizontal List" FontSize="16" FontAttributes="Bold" />
+            <ma:ListHostView x:Name="HList"
+                             AutomationId="HList"
+                             Margin="-16,0,-16,0"
+                             ContentInset="16,0,16,0"
+                             ItemExtent="140"
+                             Spacing="12"
+                             Orientation="Horizontal"
+                             HeightRequest="160">
+
+                <ma:ListHostView.ItemTemplate>
+                    <DataTemplate>
+                        <Border BackgroundColor="{Binding Color}"
+                                StrokeShape="RoundRectangle 12"
+                                StrokeThickness="0"
+                                Padding="16">
+                            <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                                <Label Text="{Binding Icon}" FontSize="32" HorizontalTextAlignment="Center" />
+                                <Label Text="{Binding Name}" FontSize="14" FontAttributes="Bold"
+                                       TextColor="White" HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </ma:ListHostView.ItemTemplate>
+
+            </ma:ListHostView>
+        </VerticalStackLayout>
+
+        <!-- Horizontal Grid (2 rows) -->
+        <VerticalStackLayout Grid.Row="3" Spacing="4">
+            <Label Text="Horizontal Grid (2 rows)" FontSize="16" FontAttributes="Bold" />
+            <ma:CollectionHostView x:Name="HGrid"
+                                    AutomationId="HGrid"
+                                    Margin="-16,0,-16,0"
+                                    ContentInset="16,0,16,0"
+                                    HeightRequest="160">
+
+                <ma:CollectionHostView.ItemTemplate>
+                    <DataTemplate>
+                        <Border BackgroundColor="{Binding Color}"
+                                StrokeShape="RoundRectangle 8"
+                                StrokeThickness="0"
+                                Padding="8">
+                            <Label Text="{Binding Name}" FontSize="12"
+                                   TextColor="White"
+                                   VerticalTextAlignment="Center"
+                                   HorizontalTextAlignment="Center" />
+                        </Border>
+                    </DataTemplate>
+                </ma:CollectionHostView.ItemTemplate>
+
+            </ma:CollectionHostView>
+        </VerticalStackLayout>
+
+    </Grid>
+
+</ContentPage>

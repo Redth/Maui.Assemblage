@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ma="clr-namespace:Maui.Assemblage;assembly=Maui.Assemblage"
+             x:Class="Maui.Assemblage.Sample.GroupedPage"
+             Title="Grouped" SafeAreaEdges="None">
+
+    <Grid RowDefinitions="Auto,*" Padding="16" RowSpacing="8" SafeAreaEdges="None">
+
+        <Label AutomationId="GroupedTitle"
+               Text="Grouped List Demo"
+               FontSize="22" FontAttributes="Bold"
+               HorizontalOptions="Center" />
+
+        <ma:ListHostView Grid.Row="1"
+                         x:Name="GroupedList"
+                         AutomationId="GroupedList"
+                         Margin="-16,0,-16,-16"
+                         ContentInset="16,0,16,16"
+                         ItemExtent="44"
+                         Spacing="2"
+                         Header="Fruit A–Z"
+                         EmptyView="No fruits available">
+
+            <ma:ListHostView.HeaderTemplate>
+                <DataTemplate>
+                    <Border BackgroundColor="{AppThemeBinding Light=#6750A4, Dark=#D0BCFF}"
+                            StrokeThickness="0"
+                            Padding="16,12">
+                        <Label Text="{Binding .}"
+                               FontSize="20" FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light=White, Dark=#1C1B1F}"
+                               HorizontalTextAlignment="Center" />
+                    </Border>
+                </DataTemplate>
+            </ma:ListHostView.HeaderTemplate>
+
+            <ma:ListHostView.SectionHeaderTemplate>
+                <DataTemplate>
+                    <Border BackgroundColor="{AppThemeBinding Light=#E8DEF8, Dark=#4A4458}"
+                            StrokeThickness="0"
+                            Padding="16,8">
+                        <Label Text="{Binding .}"
+                               FontSize="17" FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light=#1C1B1F, Dark=#E8DEF8}" />
+                    </Border>
+                </DataTemplate>
+            </ma:ListHostView.SectionHeaderTemplate>
+
+            <ma:ListHostView.ItemTemplate>
+                <DataTemplate>
+                    <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#2A2A2A}"
+                            StrokeShape="RoundRectangle 6"
+                            Stroke="{AppThemeBinding Light=#E0E0E0, Dark=#444444}"
+                            StrokeThickness="1"
+                            Padding="16,8">
+                        <Label Text="{Binding .}"
+                               FontSize="15"
+                               VerticalTextAlignment="Center" />
+                    </Border>
+                </DataTemplate>
+            </ma:ListHostView.ItemTemplate>
+
+            <ma:ListHostView.EmptyViewTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="8">
+                            <Label Text="🍎" FontSize="48" HorizontalTextAlignment="Center" />
+                            <Label Text="{Binding .}" FontSize="18" TextColor="Gray" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </DataTemplate>
+            </ma:ListHostView.EmptyViewTemplate>
+
+        </ma:ListHostView>
+
+    </Grid>
+
+</ContentPage>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ma="clr-namespace:Maui.Assemblage;assembly=Maui.Assemblage"
+             x:Class="Maui.Assemblage.Sample.StressTestPage"
+             Title="Stress Test" SafeAreaEdges="None">
+
+    <Grid RowDefinitions="Auto,Auto,*" Padding="0" RowSpacing="0" SafeAreaEdges="None">
+
+        <Grid Padding="16,8" ColumnDefinitions="*,Auto" BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2C2C2E}">
+            <Label Text="🏋️ Performance Stress Test" FontSize="18" FontAttributes="Bold" VerticalOptions="Center" />
+            <Label Grid.Column="1" x:Name="StatusLabel" FontSize="12" TextColor="Gray" VerticalOptions="Center" />
+        </Grid>
+
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" Padding="16,8">
+            <Button x:Name="Btn1K" Text="1,000" FontSize="12" Padding="8,4" HeightRequest="32" Clicked="OnLoad1K"/>
+            <Button x:Name="Btn10K" Text="10,000" FontSize="12" Padding="8,4" HeightRequest="32" Clicked="OnLoad10K"/>
+            <Button x:Name="Btn50K" Text="50,000" FontSize="12" Padding="8,4" HeightRequest="32" Clicked="OnLoad50K"/>
+            <Label Text="Layout:" VerticalOptions="Center" FontSize="13" Margin="16,0,0,0"/>
+            <Button x:Name="LayoutBtn" Text="List" FontSize="12" Padding="8,4" HeightRequest="32" Clicked="OnLayoutToggle"/>
+        </HorizontalStackLayout>
+
+        <ma:ListHostView Grid.Row="2"
+                          x:Name="StressList"
+                          AutomationId="StressList"
+                          ItemExtent="52"
+                          Orientation="Vertical" />
+
+    </Grid>
+
+</ContentPage>

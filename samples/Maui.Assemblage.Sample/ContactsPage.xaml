@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ma="clr-namespace:Maui.Assemblage;assembly=Maui.Assemblage"
+             x:Class="Maui.Assemblage.Sample.ContactsPage"
+             Title="Contacts" SafeAreaEdges="None">
+
+    <Grid RowDefinitions="Auto,Auto,*" Padding="0" RowSpacing="0" SafeAreaEdges="None">
+
+        <Grid Padding="16,8" ColumnDefinitions="*,Auto" BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2C2C2E}">
+            <Label Text="📇 Grouped Contacts" FontSize="18" FontAttributes="Bold" VerticalOptions="Center" />
+            <Label Grid.Column="1" x:Name="CountLabel" FontSize="12" TextColor="Gray" VerticalOptions="Center" />
+        </Grid>
+
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" Padding="16,8">
+            <Label Text="Sticky Headers:" VerticalOptions="Center" FontSize="13"/>
+            <Switch x:Name="StickySwitch" IsToggled="True" Toggled="OnStickyToggled"/>
+            <Label Text="Selection:" VerticalOptions="Center" FontSize="13" Margin="16,0,0,0"/>
+            <Button x:Name="SelectionBtn" Text="Single" FontSize="12" Padding="8,4"
+                    HeightRequest="32" Clicked="OnSelectionModeClicked"/>
+        </HorizontalStackLayout>
+
+        <ma:ListHostView Grid.Row="2"
+                          x:Name="ContactList"
+                          AutomationId="ContactList"
+                          ItemExtent="72"
+                          StickyHeaders="True"
+                          Orientation="Vertical" />
+
+    </Grid>
+
+</ContentPage>

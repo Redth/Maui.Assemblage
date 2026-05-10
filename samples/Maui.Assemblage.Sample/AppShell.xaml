@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="Maui.Assemblage.Sample.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:Maui.Assemblage.Sample"
+    Title="Assemblage Gallery"
+    FlyoutBehavior="Flyout"
+    FlyoutWidth="280"
+    FlyoutBackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#1C1C1E}">
+
+    <Shell.FlyoutHeader>
+        <Grid HeightRequest="120" BackgroundColor="{AppThemeBinding Light=#6750A4, Dark=#D0BCFF}" Padding="20">
+            <VerticalStackLayout VerticalOptions="End" Spacing="4">
+                <Label Text="Assemblage" FontSize="24" FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=White, Dark=#1C1B1F}" />
+                <Label Text="Collection Controls Gallery" FontSize="13"
+                       TextColor="{AppThemeBinding Light=#E8DEF8, Dark=#49454F}" />
+            </VerticalStackLayout>
+        </Grid>
+    </Shell.FlyoutHeader>
+
+    <!-- Basic Lists -->
+    <FlyoutItem Title="Vertical List" Route="HostViewPage">
+        <ShellContent ContentTemplate="{DataTemplate local:HostViewPage}" />
+    </FlyoutItem>
+    <FlyoutItem Title="Horizontal List" Route="HorizontalListPage">
+        <ShellContent ContentTemplate="{DataTemplate local:HorizontalListPage}" />
+    </FlyoutItem>
+    <FlyoutItem Title="Grouped List" Route="GroupedPage">
+        <ShellContent ContentTemplate="{DataTemplate local:GroupedPage}" />
+    </FlyoutItem>
+    <FlyoutItem Title="Sticky Headers" Route="StickyHeadersPage">
+        <ShellContent ContentTemplate="{DataTemplate local:StickyHeadersPage}" />
+    </FlyoutItem>
+
+    <!-- Grids -->
+    <FlyoutItem Title="Staggered Grid" Route="StaggeredGridPage">
+        <ShellContent ContentTemplate="{DataTemplate local:StaggeredGridPage}" />
+    </FlyoutItem>
+    <FlyoutItem Title="Spanning Header Grid" Route="SpanningHeaderGridPage">
+        <ShellContent ContentTemplate="{DataTemplate local:SpanningHeaderGridPage}" />
+    </FlyoutItem>
+    <FlyoutItem Title="Wrap / Flow" Route="WrapLayoutPage">
+        <ShellContent ContentTemplate="{DataTemplate local:WrapLayoutPage}" />
+    </FlyoutItem>
+
+    <!-- Carousels -->
+    <FlyoutItem Title="Carousel" Route="CarouselPage">
+        <ShellContent ContentTemplate="{DataTemplate local:CarouselPage}" />
+    </FlyoutItem>
+    <FlyoutItem Title="CoverFlow" Route="CoverFlowPage">
+        <ShellContent ContentTemplate="{DataTemplate local:CoverFlowPage}" />
+    </FlyoutItem>
+    <FlyoutItem Title="Timeline" Route="TimelinePage">
+        <ShellContent ContentTemplate="{DataTemplate local:TimelinePage}" />
+    </FlyoutItem>
+    <FlyoutItem Title="Wheel Picker" Route="WheelPickerPage">
+        <ShellContent ContentTemplate="{DataTemplate local:WheelPickerPage}" />
+    </FlyoutItem>
+
+    <!-- Interactive -->
+    <FlyoutItem Title="Selection" Route="SelectionPage">
+        <ShellContent ContentTemplate="{DataTemplate local:SelectionPage}" />
+    </FlyoutItem>
+    <FlyoutItem Title="Pull to Refresh" Route="RefreshPage">
+        <ShellContent ContentTemplate="{DataTemplate local:RefreshPage}" />
+    </FlyoutItem>
+
+    <!-- Advanced -->
+    <FlyoutItem Title="Template Selector" Route="TemplateSelectorPage">
+        <ShellContent ContentTemplate="{DataTemplate local:TemplateSelectorPage}" />
+    </FlyoutItem>
+    <FlyoutItem Title="Contacts (Rich)" Route="ContactsPage">
+        <ShellContent ContentTemplate="{DataTemplate local:ContactsPage}" />
+    </FlyoutItem>
+    <FlyoutItem Title="Stress Test" Route="StressTestPage">
+        <ShellContent ContentTemplate="{DataTemplate local:StressTestPage}" />
+    </FlyoutItem>
+    <FlyoutItem Title="Social Feed" Route="SocialFeedPage">
+        <ShellContent ContentTemplate="{DataTemplate local:SocialFeedPage}" />
+    </FlyoutItem>
+
+</Shell>

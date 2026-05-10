@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ma="clr-namespace:Maui.Assemblage;assembly=Maui.Assemblage"
+             x:Class="Maui.Assemblage.Sample.StickyHeadersPage"
+             Title="Sticky" SafeAreaEdges="None">
+
+    <Grid RowDefinitions="Auto,Auto,*" Padding="16" RowSpacing="8" SafeAreaEdges="None">
+        <Label AutomationId="StickyTitle"
+               Text="Sticky Headers Demo"
+               FontSize="22"
+               FontAttributes="Bold"
+               HorizontalOptions="Center" />
+
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" HorizontalOptions="Center">
+            <Label Text="Sticky Headers:" VerticalOptions="Center" FontSize="13"/>
+            <Switch x:Name="StickySwitch" IsToggled="True" Toggled="OnStickyToggled"/>
+            <Label Text="Spacing:" VerticalOptions="Center" FontSize="13" Margin="12,0,0,0"/>
+            <Slider x:Name="SpacingSlider" Minimum="0" Maximum="10" Value="2"
+                    WidthRequest="100" ValueChanged="OnSpacingChanged"/>
+        </HorizontalStackLayout>
+
+        <ma:ListHostView Grid.Row="2"
+                         x:Name="StickyList"
+                         AutomationId="StickyList"
+                         Margin="-16,0,-16,-16"
+                         ContentInset="16,0,16,16"
+                         ItemExtent="42"
+                         Spacing="2"
+                         Header="Library Sections">
+
+            <ma:ListHostView.HeaderTemplate>
+                <DataTemplate>
+                    <Border BackgroundColor="{AppThemeBinding Light=#6750A4, Dark=#D0BCFF}"
+                            StrokeThickness="0"
+                            Padding="14,10">
+                        <Label Text="{Binding .}"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light=White, Dark=#1C1B1F}" />
+                    </Border>
+                </DataTemplate>
+            </ma:ListHostView.HeaderTemplate>
+
+            <ma:ListHostView.SectionHeaderTemplate>
+                <DataTemplate>
+                    <Border BackgroundColor="{AppThemeBinding Light=#E8DEF8, Dark=#4A4458}"
+                            StrokeThickness="0"
+                            Padding="14,8">
+                        <Label Text="{Binding .}"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light=#1C1B1F, Dark=#E8DEF8}" />
+                    </Border>
+                </DataTemplate>
+            </ma:ListHostView.SectionHeaderTemplate>
+
+            <ma:ListHostView.ItemTemplate>
+                <DataTemplate>
+                    <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#2A2A2A}"
+                            StrokeShape="RoundRectangle 6"
+                            Stroke="{AppThemeBinding Light=#E0E0E0, Dark=#444444}"
+                            StrokeThickness="1"
+                            Padding="14,7">
+                        <Label Text="{Binding .}"
+                               FontSize="15"
+                               VerticalTextAlignment="Center" />
+                    </Border>
+                </DataTemplate>
+            </ma:ListHostView.ItemTemplate>
+
+        </ma:ListHostView>
+    </Grid>
+</ContentPage>

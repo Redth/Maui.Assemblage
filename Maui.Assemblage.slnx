@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Maui.Assemblage.Benchmarks/Maui.Assemblage.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Maui.Assemblage.Sample/Maui.Assemblage.Sample.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Maui.Assemblage/Maui.Assemblage.csproj" />
+    <Project Path="src/Maui.Assemblage.Core/Maui.Assemblage.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Maui.Assemblage.Core.Tests/Maui.Assemblage.Core.Tests.csproj" />
+  </Folder>
+</Solution>
