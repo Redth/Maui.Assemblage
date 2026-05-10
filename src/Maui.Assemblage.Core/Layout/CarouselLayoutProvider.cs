@@ -1,6 +1,6 @@
 namespace Maui.Assemblage.Core.Layout;
 
-public sealed class CarouselLayoutProvider : ISnappingLayoutProvider
+public sealed class CarouselLayoutProvider : ISnappingLayoutProvider, IVisibleRangeProvider
 {
     public CarouselLayoutProvider(
         double peekAmount = 0d,
@@ -126,5 +126,30 @@ public sealed class CarouselLayoutProvider : ISnappingLayoutProvider
         var rawIndex = projectedOffset / pitch;
         var snapped = (int)Math.Round(rawIndex, MidpointRounding.AwayFromZero);
         return Math.Clamp(snapped, 0, itemCount - 1);
+    }
+
+    public ItemRange GetVisibleRange(LayoutContext context)
+    {
+        if (context.ItemCount <= 0)
+        {
+            return ItemRange.Empty;
+        }
+
+        var viewportPrimary = Orientation == LayoutOrientation.Vertical
+            ? context.ViewportHeight
+            : context.ViewportWidth;
+        var itemExtent = Math.Max(0d, viewportPrimary - (2d * PeekAmount));
+        var pitch = itemExtent + ItemSpacing;
+        if (pitch <= 0d)
+        {
+            return new ItemRange(0, Math.Min(context.ItemCount, 1));
+        }
+
+        var safeOffset = Math.Max(0d, context.ScrollOffset);
+        var first = (int)Math.Floor(Math.Max(0d, safeOffset - PeekAmount) / pitch);
+        var last = (int)Math.Floor((safeOffset + Math.Max(0d, viewportPrimary)) / pitch);
+        return new ItemRange(
+            Math.Clamp(first, 0, context.ItemCount),
+            Math.Clamp(last + 1, 0, context.ItemCount));
     }
 }

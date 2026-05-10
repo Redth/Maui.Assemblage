@@ -68,6 +68,24 @@ public interface ILayoutProvider
 }
 
 /// <summary>
+/// Optional layout-provider contract for estimating the visible item range without
+/// relying on a previously arranged snapshot.
+/// </summary>
+public interface IVisibleRangeProvider
+{
+    ItemRange GetVisibleRange(LayoutContext context);
+}
+
+/// <summary>
+/// Implemented by layout providers whose per-item extents can change without
+/// the item count changing, such as measured dynamic item sizing.
+/// </summary>
+public interface IVariableExtentLayoutProvider
+{
+    void InvalidateExtents();
+}
+
+/// <summary>
 /// Layout providers that support snapping implement this to compute snap targets.
 /// </summary>
 public interface ISnappingLayoutProvider : ILayoutProvider

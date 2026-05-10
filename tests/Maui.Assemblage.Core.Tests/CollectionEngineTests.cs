@@ -13,6 +13,19 @@ public class CollectionEngineTests
         return new EnumerableCollectionDataSource(items);
     }
 
+    private sealed class CountDataSource(int count) : ICollectionDataSource
+    {
+        public int SectionCount => 1;
+
+        public int GetItemCount(int section) => count;
+
+        public object? GetItem(int section, int index) => index;
+
+        public object? GetSectionHeader(int section) => null;
+
+        public object? GetSectionFooter(int section) => null;
+    }
+
     [Fact]
     public void InitialState_NoDataSource()
     {
@@ -232,6 +245,39 @@ public class CollectionEngineTests
         // At offset 0, first visible should be 0
         Assert.NotNull(engine.LastSnapshot);
         Assert.True(engine.LastSnapshot!.Items.Count > 0);
+    }
+
+    [Fact]
+    public void InitialLayout_DoesNotRealizeEntireLargeDataSet()
+    {
+        var engine = new CollectionEngine();
+        var updates = new List<EngineUpdateEventArgs>();
+        engine.UpdateRequested += (_, e) => updates.Add(e);
+
+        engine.LayoutProvider = new LinearLayoutProvider(48d);
+        engine.OnViewportChanged(400d, 800d);
+        engine.DataSource = new CountDataSource(100_000);
+
+        var lastIncremental = updates.Last(u => u.Kind == EngineUpdateKind.Incremental);
+        Assert.True(lastIncremental.RealizedEntries.Count < 100);
+        Assert.True(engine.LastSnapshot!.Items.Count < 100);
+    }
+
+    [Fact]
+    public void LargeScrollJump_ComputesRangeFromTargetOffset()
+    {
+        var engine = new CollectionEngine();
+        engine.DataSource = new CountDataSource(100_000);
+        engine.LayoutProvider = new LinearLayoutProvider(48d);
+        engine.OnViewportChanged(400d, 800d);
+
+        engine.OnScroll(1_000d);
+        engine.OnScroll(50_000d);
+
+        var minIndex = engine.LastSnapshot!.Items.Min(i => i.Index);
+        var maxIndex = engine.LastSnapshot!.Items.Max(i => i.Index);
+        Assert.InRange(minIndex, 1_000, 1_050);
+        Assert.InRange(maxIndex, 1_050, 1_080);
     }
 
     [Fact]

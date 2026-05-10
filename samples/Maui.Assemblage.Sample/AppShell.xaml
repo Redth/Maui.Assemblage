@@ -77,6 +77,9 @@
     <FlyoutItem Title="Stress Test" Route="StressTestPage">
         <ShellContent ContentTemplate="{DataTemplate local:StressTestPage}" />
     </FlyoutItem>
+    <FlyoutItem Title="Rich Template Stress" Route="RichTemplateStressPage">
+        <ShellContent ContentTemplate="{DataTemplate local:RichTemplateStressPage}" />
+    </FlyoutItem>
     <FlyoutItem Title="Social Feed" Route="SocialFeedPage">
         <ShellContent ContentTemplate="{DataTemplate local:SocialFeedPage}" />
     </FlyoutItem>

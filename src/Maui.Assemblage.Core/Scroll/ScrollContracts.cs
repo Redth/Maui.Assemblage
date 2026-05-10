@@ -74,7 +74,8 @@ public static class ScrollRequestResolver
         ScrollRequest request,
         Layout.ILayoutProvider layoutProvider,
         Layout.LayoutContext context,
-        Layout.SectionIndexMap? indexMap)
+        Layout.SectionIndexMap? indexMap,
+        Layout.LayoutOrientation orientation = Layout.LayoutOrientation.Vertical)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(layoutProvider);
@@ -82,18 +83,25 @@ public static class ScrollRequestResolver
         return request.Kind switch
         {
             ScrollRequestKind.Start => 0d,
-            ScrollRequestKind.End => ResolveEnd(layoutProvider, context),
+            ScrollRequestKind.End => ResolveEnd(layoutProvider, context, orientation),
             ScrollRequestKind.Offset => Math.Max(0d, request.Offset),
-            ScrollRequestKind.Item => ResolveItem(request, layoutProvider, context, indexMap),
+            ScrollRequestKind.Item => ResolveItem(request, layoutProvider, context, indexMap, orientation),
             _ => 0d
         };
     }
 
-    private static double ResolveEnd(Layout.ILayoutProvider layoutProvider, Layout.LayoutContext context)
+    private static double ResolveEnd(
+        Layout.ILayoutProvider layoutProvider,
+        Layout.LayoutContext context,
+        Layout.LayoutOrientation orientation)
     {
         var snapshot = layoutProvider.Arrange(context, new Layout.ItemRange(0, context.ItemCount));
-        var contentExtent = snapshot.ContentHeight;
-        var viewportExtent = context.ViewportHeight;
+        var contentExtent = orientation == Layout.LayoutOrientation.Horizontal
+            ? snapshot.ContentWidth
+            : snapshot.ContentHeight;
+        var viewportExtent = orientation == Layout.LayoutOrientation.Horizontal
+            ? context.ViewportWidth
+            : context.ViewportHeight;
         return Math.Max(0d, contentExtent - viewportExtent);
     }
 
@@ -101,15 +109,26 @@ public static class ScrollRequestResolver
         ScrollRequest request,
         Layout.ILayoutProvider layoutProvider,
         Layout.LayoutContext context,
-        Layout.SectionIndexMap? indexMap)
+        Layout.SectionIndexMap? indexMap,
+        Layout.LayoutOrientation orientation)
     {
-        var flatIndex = indexMap is not null
-            ? indexMap.GetFlatIndex(request.Section, request.Index)
-            : request.Index;
+        var flatIndex = request.Index;
+        if (indexMap is not null && !indexMap.TryGetFlatIndex(request.Section, request.Index, out flatIndex))
+        {
+            return 0d;
+        }
 
         if (flatIndex < 0 || flatIndex >= context.ItemCount)
         {
             return 0d;
+        }
+
+        if (layoutProvider is Layout.ISnappingLayoutProvider snappingLayout)
+        {
+            var viewportSize = orientation == Layout.LayoutOrientation.Horizontal
+                ? context.ViewportWidth
+                : context.ViewportHeight;
+            return snappingLayout.GetSnapOffset(flatIndex, viewportSize);
         }
 
         var range = new Layout.ItemRange(flatIndex, flatIndex + 1);
@@ -121,6 +140,8 @@ public static class ScrollRequestResolver
         }
 
         var frame = snapshot.Items[0].Frame;
-        return Math.Max(frame.X, frame.Y);
+        return orientation == Layout.LayoutOrientation.Horizontal
+            ? Math.Max(0d, frame.X)
+            : Math.Max(0d, frame.Y);
     }
 }

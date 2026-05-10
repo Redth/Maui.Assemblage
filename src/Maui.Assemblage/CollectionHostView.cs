@@ -3,6 +3,7 @@ using Maui.Assemblage.Core.Collections;
 using Maui.Assemblage.Core.Data;
 using Maui.Assemblage.Core.Layout;
 using Maui.Assemblage.Core.Realization;
+using Maui.Assemblage.Core.Scroll;
 using System.Collections;
 using System.Collections.Specialized;
 using System.Windows.Input;
@@ -22,17 +23,23 @@ public class CollectionHostView : ContentView
     private readonly CollectionEngine _engine = new();
     private readonly ScrollView _scrollView;
     private readonly AbsoluteLayout _contentSurface;
+    private readonly Grid _root;
     private readonly RecyclePool<string, View> _viewPool = new(maxPerBucket: 20);
     private readonly Dictionary<int, View> _realizedViews = [];
     private readonly Dictionary<int, string> _realizedTemplateKeys = [];
     private readonly Dictionary<View, TapGestureRecognizer> _selectionTapRecognizers = [];
     private readonly Dictionary<View, Brush?> _originalBackgrounds = [];
     private readonly Dictionary<DataTemplate, string> _templateKeyMap = [];
+    private readonly Dictionary<int, double> _measuredItemExtents = [];
     private int _templateKeyCounter;
     private RefreshView? _refreshView;
+    private INotifyCollectionChanged? _subscribedItemsSource;
     private bool _isUpdating;
+    private bool _measuredExtentInvalidationScheduled;
     private bool _hasEmptyNode;
     private Thickness _effectiveContentInset;
+    private double _measurementCrossExtent = -1d;
+    private readonly record struct ScrollAnchor(int FlatIndex, double OffsetWithinItem);
 #if ANDROID
     private readonly HashSet<View> _cameraDistanceSet = [];
 #endif
@@ -51,6 +58,7 @@ public class CollectionHostView : ContentView
 
     public CollectionHostView()
     {
+        _engine.UseIncrementalChanges = false;
         _contentSurface = new AbsoluteLayout
         {
             VerticalOptions = LayoutOptions.Start,
@@ -70,19 +78,20 @@ public class CollectionHostView : ContentView
             IsVisible = false,
             SafeAreaEdges = Microsoft.Maui.SafeAreaEdges.None
         };
-        var root = new Grid
+        _root = new Grid
         {
             SafeAreaEdges = Microsoft.Maui.SafeAreaEdges.None
         };
-        root.Children.Add(_scrollView);
-        root.Children.Add(_stickyOverlay);
-        Content = root;
+        _root.Children.Add(_scrollView);
+        _root.Children.Add(_stickyOverlay);
+        Content = _root;
 
         _scrollView.Scrolled += OnScrolled;
         _engine.UpdateRequested += OnEngineUpdate;
         _engine.Selection.SelectionChanged += OnSelectionChanged;
-        Loaded += (_, _) => UpdateEffectiveContentInset(refreshViewport: true);
-        HandlerChanged += (_, _) => UpdateEffectiveContentInset(refreshViewport: true);
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+        HandlerChanged += OnHandlerChanged;
     }
 
     #region Bindable Properties
@@ -96,26 +105,32 @@ public class CollectionHostView : ContentView
         propertyChanged: (b, _, n) => ((CollectionHostView)b)._engine.LayoutProvider = (ILayoutProvider?)n);
 
     public static readonly BindableProperty ItemTemplateProperty = BindableProperty.Create(
-        nameof(ItemTemplate), typeof(DataTemplate), typeof(CollectionHostView));
+        nameof(ItemTemplate), typeof(DataTemplate), typeof(CollectionHostView),
+        propertyChanged: OnTemplatePropertyChanged);
 
     public static readonly BindableProperty ItemTemplateSelectorProperty = BindableProperty.Create(
         nameof(ItemTemplateSelector), typeof(DataTemplateSelector), typeof(CollectionHostView),
-        propertyChanged: (b, _, _) => ((CollectionHostView)b).UpdateTemplateKeyProvider());
+        propertyChanged: OnItemTemplateSelectorChanged);
 
     public static readonly BindableProperty SectionHeaderTemplateProperty = BindableProperty.Create(
-        nameof(SectionHeaderTemplate), typeof(DataTemplate), typeof(CollectionHostView));
+        nameof(SectionHeaderTemplate), typeof(DataTemplate), typeof(CollectionHostView),
+        propertyChanged: OnTemplatePropertyChanged);
 
     public static readonly BindableProperty SectionFooterTemplateProperty = BindableProperty.Create(
-        nameof(SectionFooterTemplate), typeof(DataTemplate), typeof(CollectionHostView));
+        nameof(SectionFooterTemplate), typeof(DataTemplate), typeof(CollectionHostView),
+        propertyChanged: OnTemplatePropertyChanged);
 
     public static readonly BindableProperty HeaderTemplateProperty = BindableProperty.Create(
-        nameof(HeaderTemplate), typeof(DataTemplate), typeof(CollectionHostView));
+        nameof(HeaderTemplate), typeof(DataTemplate), typeof(CollectionHostView),
+        propertyChanged: OnTemplatePropertyChanged);
 
     public static readonly BindableProperty FooterTemplateProperty = BindableProperty.Create(
-        nameof(FooterTemplate), typeof(DataTemplate), typeof(CollectionHostView));
+        nameof(FooterTemplate), typeof(DataTemplate), typeof(CollectionHostView),
+        propertyChanged: OnTemplatePropertyChanged);
 
     public static readonly BindableProperty EmptyViewTemplateProperty = BindableProperty.Create(
-        nameof(EmptyViewTemplate), typeof(DataTemplate), typeof(CollectionHostView));
+        nameof(EmptyViewTemplate), typeof(DataTemplate), typeof(CollectionHostView),
+        propertyChanged: OnTemplatePropertyChanged);
 
     public static readonly BindableProperty SelectionModeProperty = BindableProperty.Create(
         nameof(SelectionMode), typeof(SelectionMode), typeof(CollectionHostView),
@@ -197,6 +212,15 @@ public class CollectionHostView : ContentView
         nameof(SelectedBackgroundColor), typeof(Color), typeof(CollectionHostView),
         Color.FromArgb("#E8DEF8"),
         propertyChanged: (b, _, _) => ((CollectionHostView)b).RefreshSelectionVisuals());
+
+    public static readonly BindableProperty UseMeasuredItemExtentsProperty = BindableProperty.Create(
+        nameof(UseMeasuredItemExtents), typeof(bool), typeof(CollectionHostView), false,
+        propertyChanged: (b, _, _) =>
+        {
+            var host = (CollectionHostView)b;
+            host.ClearMeasuredItemExtents();
+            host.OnUseMeasuredItemExtentsChanged();
+        });
 
     public object? ItemsSource
     {
@@ -364,6 +388,16 @@ public class CollectionHostView : ContentView
         set => SetValue(SelectedBackgroundColorProperty, value);
     }
 
+    /// <summary>
+    /// When enabled, realized views are measured and their actual primary-axis
+    /// extents are fed back into variable-extent layouts.
+    /// </summary>
+    public bool UseMeasuredItemExtents
+    {
+        get => (bool)GetValue(UseMeasuredItemExtentsProperty);
+        set => SetValue(UseMeasuredItemExtentsProperty, value);
+    }
+
     #endregion
 
     /// <summary>Provides access to the underlying engine for advanced scenarios.</summary>
@@ -387,24 +421,48 @@ public class CollectionHostView : ContentView
 
     /// <summary>Scrolls to the given item index, centering it in the viewport if snapping is enabled.</summary>
     public void ScrollToItem(int index, bool animated = true)
+        => ScrollToItem(0, index, animated);
+
+    /// <summary>Scrolls to the given item in a section.</summary>
+    public void ScrollToItem(int section, int index, bool animated = true)
+        => ScrollTo(ScrollRequest.ToItem(section, index, animated));
+
+    /// <summary>Scrolls to the given offset in the current scroll direction.</summary>
+    public void ScrollToOffset(double offset, bool animated = true)
+        => ScrollTo(ScrollRequest.ToOffset(offset, animated));
+
+    /// <summary>Scrolls to the start of the collection.</summary>
+    public void ScrollToStart(bool animated = true)
+        => ScrollTo(ScrollRequest.ToStart(animated));
+
+    /// <summary>Scrolls to the end of the collection.</summary>
+    public void ScrollToEnd(bool animated = true)
+        => ScrollTo(ScrollRequest.ToEnd(animated));
+
+    private void ScrollTo(ScrollRequest request)
     {
+        if (_engine.LayoutProvider is null)
+        {
+            return;
+        }
+
         var isHorizontal = _scrollView.Orientation == ScrollOrientation.Horizontal;
+        var viewport = GetEngineViewportSize(_scrollView.Width, _scrollView.Height);
         var leadingInset = GetLeadingContentInset();
-        var viewportSize = GetEngineViewportMainAxisSize();
-        if (_engine.LayoutProvider is ISnappingLayoutProvider snap)
-        {
-            var offset = snap.GetSnapOffset(index, viewportSize);
-            _ = isHorizontal
-                ? _scrollView.ScrollToAsync(offset + leadingInset, 0, animated)
-                : _scrollView.ScrollToAsync(0, offset + leadingInset, animated);
-        }
-        else
-        {
-            var offset = index * 48d + leadingInset;
-            _ = isHorizontal
-                ? _scrollView.ScrollToAsync(offset, 0, animated)
-                : _scrollView.ScrollToAsync(0, offset, animated);
-        }
+        var context = new LayoutContext(
+            _engine.Nodes.Count,
+            viewport.Width,
+            viewport.Height,
+            GetEngineScrollOffset());
+        var offset = ScrollRequestResolver.Resolve(
+            request,
+            _engine.LayoutProvider,
+            context,
+            _engine.SectionIndexMap,
+            _engine.ScrollAxis) + leadingInset;
+        _ = isHorizontal
+            ? _scrollView.ScrollToAsync(offset, 0, request.Animated)
+            : _scrollView.ScrollToAsync(0, offset, request.Animated);
     }
 
     protected override void OnSizeAllocated(double width, double height)
@@ -412,6 +470,7 @@ public class CollectionHostView : ContentView
         base.OnSizeAllocated(width, height);
         UpdateEffectiveContentInset(refreshViewport: false);
         var viewport = GetEngineViewportSize(width, height);
+        TrackMeasurementCrossExtent(viewport);
         _engine.OnViewportChanged(viewport.Width, viewport.Height);
     }
 
@@ -419,51 +478,93 @@ public class CollectionHostView : ContentView
     {
         var host = (CollectionHostView)bindable;
 
-        // Unsubscribe from old collection changes
-        if (oldValue is INotifyCollectionChanged oldNcc)
-        {
-            oldNcc.CollectionChanged -= host.OnCollectionChanged;
-        }
-
-        // Subscribe to new collection changes
-        if (newValue is INotifyCollectionChanged newNcc)
-        {
-            newNcc.CollectionChanged += host.OnCollectionChanged;
-        }
+        host.UnsubscribeItemsSource(oldValue);
+        host.SubscribeItemsSource(newValue);
+        host.ClearMeasuredItemExtents();
 
         host.RebuildDataSource();
     }
 
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // Use incremental update path for non-Reset changes
-        if (e.Action != NotifyCollectionChangedAction.Reset)
-        {
-            var changeSet = new Core.Data.CollectionChangeSet();
-            switch (e.Action)
-            {
-                case NotifyCollectionChangedAction.Add:
-                    changeSet.Add(Core.Data.CollectionChange.Insert(0, e.NewStartingIndex, e.NewItems?.Count ?? 1));
-                    break;
-                case NotifyCollectionChangedAction.Remove:
-                    changeSet.Add(Core.Data.CollectionChange.Remove(0, e.OldStartingIndex, e.OldItems?.Count ?? 1));
-                    break;
-                case NotifyCollectionChangedAction.Replace:
-                    changeSet.Add(Core.Data.CollectionChange.Replace(0, e.NewStartingIndex, e.NewItems?.Count ?? 1));
-                    break;
-                case NotifyCollectionChangedAction.Move:
-                    changeSet.Add(Core.Data.CollectionChange.Move(0, e.OldStartingIndex, e.NewStartingIndex));
-                    break;
-            }
+        ClearMeasuredItemExtents();
+        RebuildDataSource();
+    }
 
-            // Refresh the data source snapshot without triggering a full engine rebuild,
-            // then apply the incremental change to shift realized indices.
-            RefreshDataSourceQuiet();
-            _engine.ApplyIncrementalChanges(changeSet);
+    private void OnLoaded(object? sender, EventArgs e)
+    {
+        SubscribeItemsSource(ItemsSource);
+        UpdateEffectiveContentInset(refreshViewport: true);
+    }
+
+    private void OnUnloaded(object? sender, EventArgs e)
+    {
+        UnsubscribeItemsSource(_subscribedItemsSource);
+        _snapDebounceTimer?.Stop();
+        if (_snapDebounceTimer is not null)
+        {
+            _snapDebounceTimer.Tick -= OnSnapDebounceElapsed;
+        }
+        _isSnapping = false;
+    }
+
+    private void OnHandlerChanged(object? sender, EventArgs e)
+    {
+        UpdateEffectiveContentInset(refreshViewport: true);
+    }
+
+    private void SubscribeItemsSource(object? source)
+    {
+        if (source is not INotifyCollectionChanged ncc ||
+            ReferenceEquals(_subscribedItemsSource, ncc))
+        {
             return;
         }
 
-        RebuildDataSource();
+        if (_subscribedItemsSource is not null)
+        {
+            _subscribedItemsSource.CollectionChanged -= OnCollectionChanged;
+        }
+
+        _subscribedItemsSource = ncc;
+        ncc.CollectionChanged += OnCollectionChanged;
+    }
+
+    private void UnsubscribeItemsSource(object? source)
+    {
+        if (source is INotifyCollectionChanged ncc &&
+            ReferenceEquals(_subscribedItemsSource, ncc))
+        {
+            ncc.CollectionChanged -= OnCollectionChanged;
+            _subscribedItemsSource = null;
+        }
+    }
+
+    private static void OnTemplatePropertyChanged(BindableObject bindable, object oldValue, object newValue)
+    {
+        ((CollectionHostView)bindable).InvalidateRealizedTemplates(resetSelectorKeys: false);
+    }
+
+    private static void OnItemTemplateSelectorChanged(BindableObject bindable, object oldValue, object newValue)
+    {
+        var host = (CollectionHostView)bindable;
+        host.UpdateTemplateKeyProvider();
+        host.InvalidateRealizedTemplates(resetSelectorKeys: true);
+    }
+
+    private void InvalidateRealizedTemplates(bool resetSelectorKeys)
+    {
+        if (resetSelectorKeys)
+        {
+            _templateKeyMap.Clear();
+            _templateKeyCounter = 0;
+        }
+
+        ClearMeasuredItemExtents();
+        RecycleAll();
+        _viewPool.Clear();
+        HideStickyOverlay();
+        _engine.InvalidateLayout();
     }
 
     /// <summary>
@@ -649,6 +750,8 @@ public class CollectionHostView : ContentView
                 return;
             }
 
+            var measurementsChanged = false;
+
             // Recycle views that are no longer needed
             foreach (var idx in e.RecycledIndices)
             {
@@ -664,10 +767,11 @@ public class CollectionHostView : ContentView
             // Realize new views
             foreach (var entry in e.RealizedEntries)
             {
-                if (_realizedViews.ContainsKey(entry.FlatIndex))
+                if (_realizedViews.TryGetValue(entry.FlatIndex, out var realizedView))
                 {
                     // Already realized — just reposition
-                    PositionView(_realizedViews[entry.FlatIndex], entry.Attributes, entry.FlatIndex);
+                    PositionView(realizedView, entry.Attributes, entry.FlatIndex);
+                    measurementsChanged |= TryUpdateMeasuredItemExtent(realizedView, entry.Attributes, entry.FlatIndex);
                     continue;
                 }
 
@@ -683,10 +787,16 @@ public class CollectionHostView : ContentView
                 _realizedViews[entry.FlatIndex] = view;
                 _realizedTemplateKeys[entry.FlatIndex] = entry.TemplateKey;
                 _contentSurface.Children.Add(view);
+                measurementsChanged |= TryUpdateMeasuredItemExtent(view, entry.Attributes, entry.FlatIndex);
             }
 
             UpdateContentSize(e.Snapshot);
             UpdateStickyOverlay();
+
+            if (measurementsChanged)
+            {
+                ScheduleMeasuredExtentInvalidation();
+            }
         }
         finally
         {
@@ -711,6 +821,214 @@ public class CollectionHostView : ContentView
 
         var content = template.CreateContent();
         return content as View ?? CreateDefaultView();
+    }
+
+    protected bool TryGetMeasuredItemExtent(int flatIndex, out double extent)
+        => _measuredItemExtents.TryGetValue(flatIndex, out extent);
+
+    protected virtual void OnUseMeasuredItemExtentsChanged()
+    {
+        _engine.InvalidateLayout();
+    }
+
+    private void TrackMeasurementCrossExtent((double Width, double Height) viewport)
+    {
+        if (!UseMeasuredItemExtents)
+        {
+            return;
+        }
+
+        var crossExtent = _scrollView.Orientation == ScrollOrientation.Horizontal
+            ? viewport.Height
+            : viewport.Width;
+        if (crossExtent <= 0d)
+        {
+            return;
+        }
+
+        if (_measurementCrossExtent < 0d || Math.Abs(_measurementCrossExtent - crossExtent) > 0.5d)
+        {
+            _measurementCrossExtent = crossExtent;
+            ClearMeasuredItemExtents();
+        }
+    }
+
+    private void ClearMeasuredItemExtents()
+    {
+        if (_measuredItemExtents.Count == 0)
+        {
+            return;
+        }
+
+        _measuredItemExtents.Clear();
+        _measuredExtentInvalidationScheduled = false;
+        InvalidateVariableLayoutExtents();
+    }
+
+    private bool TryUpdateMeasuredItemExtent(View view, LayoutItemAttributes attr, int flatIndex)
+    {
+        if (!UseMeasuredItemExtents || flatIndex < 0)
+        {
+            return false;
+        }
+
+        var isHorizontal = _scrollView.Orientation == ScrollOrientation.Horizontal;
+        var widthConstraint = isHorizontal ? double.PositiveInfinity : Math.Max(0d, attr.Frame.Width);
+        var heightConstraint = isHorizontal ? Math.Max(0d, attr.Frame.Height) : double.PositiveInfinity;
+        if ((!isHorizontal && widthConstraint <= 0d) || (isHorizontal && heightConstraint <= 0d))
+        {
+            return false;
+        }
+
+        var measured = view.Measure(widthConstraint, heightConstraint);
+        var measuredExtent = isHorizontal ? measured.Width : measured.Height;
+        if (!double.IsFinite(measuredExtent) || measuredExtent <= 0d)
+        {
+            return false;
+        }
+
+        measuredExtent = Math.Ceiling(measuredExtent);
+        if (_measuredItemExtents.TryGetValue(flatIndex, out var existing) &&
+            Math.Abs(existing - measuredExtent) <= 0.5d)
+        {
+            return false;
+        }
+
+        _measuredItemExtents[flatIndex] = measuredExtent;
+        InvalidateVariableLayoutExtents();
+        return true;
+    }
+
+    private void InvalidateVariableLayoutExtents()
+    {
+        if (_engine.LayoutProvider is IVariableExtentLayoutProvider variableLayout)
+        {
+            variableLayout.InvalidateExtents();
+        }
+    }
+
+    private void ScheduleMeasuredExtentInvalidation()
+    {
+        if (_measuredExtentInvalidationScheduled)
+        {
+            return;
+        }
+
+        var anchor = CaptureScrollAnchor();
+        _measuredExtentInvalidationScheduled = true;
+        if (!Dispatcher.Dispatch(() =>
+            {
+                ApplyMeasuredExtentInvalidation(anchor);
+            }))
+        {
+            ApplyMeasuredExtentInvalidation(anchor);
+        }
+    }
+
+    private void ApplyMeasuredExtentInvalidation(ScrollAnchor? anchor)
+    {
+        _measuredExtentInvalidationScheduled = false;
+        _engine.InvalidateLayout();
+        RestoreScrollAnchor(anchor);
+    }
+
+    private ScrollAnchor? CaptureScrollAnchor()
+    {
+        var snapshot = _engine.LastSnapshot;
+        if (snapshot is null || snapshot.Items.Count == 0)
+        {
+            return null;
+        }
+
+        var isHorizontal = _scrollView.Orientation == ScrollOrientation.Horizontal;
+        var scrollOffset = GetEngineScrollOffset();
+
+        foreach (var attr in snapshot.Items)
+        {
+            if (attr.Index < 0 || attr.Index >= _engine.Nodes.Count)
+            {
+                continue;
+            }
+
+            var leading = isHorizontal ? attr.Frame.X : attr.Frame.Y;
+            var trailing = leading + (isHorizontal ? attr.Frame.Width : attr.Frame.Height);
+            if (trailing > scrollOffset)
+            {
+                return new ScrollAnchor(attr.Index, scrollOffset - leading);
+            }
+        }
+
+        return null;
+    }
+
+    private void RestoreScrollAnchor(ScrollAnchor? anchor)
+    {
+        if (anchor is null || _engine.LayoutProvider is null ||
+            anchor.Value.FlatIndex < 0 || anchor.Value.FlatIndex >= _engine.Nodes.Count)
+        {
+            return;
+        }
+
+        LayoutItemAttributes? anchorAttr = null;
+        if (_engine.LastSnapshot is not null)
+        {
+            foreach (var attr in _engine.LastSnapshot.Items)
+            {
+                if (attr.Index == anchor.Value.FlatIndex)
+                {
+                    anchorAttr = attr;
+                    break;
+                }
+            }
+        }
+
+        if (anchorAttr is null)
+        {
+            var viewport = GetEngineViewportSize(_scrollView.Width, _scrollView.Height);
+            var context = new LayoutContext(
+                _engine.Nodes.Count,
+                viewport.Width,
+                viewport.Height,
+                GetEngineScrollOffset());
+            var anchorSnapshot = _engine.LayoutProvider.Arrange(
+                context,
+                new ItemRange(anchor.Value.FlatIndex, anchor.Value.FlatIndex + 1));
+
+            foreach (var attr in anchorSnapshot.Items)
+            {
+                if (attr.Index == anchor.Value.FlatIndex)
+                {
+                    anchorAttr = attr;
+                    break;
+                }
+            }
+        }
+
+        if (anchorAttr is null)
+        {
+            return;
+        }
+
+        var isHorizontal = _scrollView.Orientation == ScrollOrientation.Horizontal;
+        var leading = isHorizontal ? anchorAttr.Value.Frame.X : anchorAttr.Value.Frame.Y;
+        var targetEngineOffset = Math.Max(0d, leading + anchor.Value.OffsetWithinItem);
+        var targetRawOffset = targetEngineOffset + GetLeadingContentInset();
+        var maxRawOffset = isHorizontal
+            ? Math.Max(0d, _contentSurface.WidthRequest - _scrollView.Width)
+            : Math.Max(0d, _contentSurface.HeightRequest - _scrollView.Height);
+        targetRawOffset = Math.Clamp(targetRawOffset, 0d, maxRawOffset);
+        var currentRawOffset = isHorizontal ? _scrollView.ScrollX : _scrollView.ScrollY;
+        if (Math.Abs(targetRawOffset - currentRawOffset) <= 0.5d)
+        {
+            return;
+        }
+
+        _scrollVelocity = 0d;
+        _lastScrollOffset = Math.Max(0d, targetRawOffset - GetLeadingContentInset());
+        _lastScrollTime = DateTime.UtcNow;
+        _ = isHorizontal
+            ? _scrollView.ScrollToAsync(targetRawOffset, 0d, false)
+            : _scrollView.ScrollToAsync(0d, targetRawOffset, false);
     }
 
     private DataTemplate? GetTemplateForKey(string templateKey, int flatIndex)
@@ -998,7 +1316,7 @@ public class CollectionHostView : ContentView
                 headerAttrs.Add((node.Section, attr));
             }
 
-            if (!sectionEnds.ContainsKey(node.Section) || itemEnd > sectionEnds[node.Section])
+            if (!sectionEnds.TryGetValue(node.Section, out var existingSectionEnd) || itemEnd > existingSectionEnd)
                 sectionEnds[node.Section] = itemEnd;
         }
 
@@ -1130,13 +1448,13 @@ public class CollectionHostView : ContentView
 
     private double GetAxisTrailingContentInsetForViewport()
         => _scrollView.Orientation == ScrollOrientation.Horizontal
-            ? ContentInset.Right
-            : ContentInset.Bottom;
+            ? _effectiveContentInset.Right
+            : _effectiveContentInset.Bottom;
 
     private double GetAxisTrailingContentInsetForScrollSize()
         => _scrollView.Orientation == ScrollOrientation.Horizontal
-            ? ContentInset.Right
-            : ContentInset.Bottom;
+            ? _effectiveContentInset.Right
+            : _effectiveContentInset.Bottom;
 
     private double GetCrossLeadingContentInset()
         => _scrollView.Orientation == ScrollOrientation.Horizontal
@@ -1294,16 +1612,30 @@ public class CollectionHostView : ContentView
             _refreshView = new RefreshView();
             _refreshView.Refreshing += OnRefreshViewRefreshing;
             _refreshView.IsRefreshing = IsRefreshing;
+            _root.Children.Remove(_scrollView);
             _refreshView.Content = _scrollView;
-            Content = _refreshView;
+            SetScrollableRoot(_refreshView);
         }
         else if (!IsRefreshEnabled && _refreshView is not null)
         {
             _refreshView.Refreshing -= OnRefreshViewRefreshing;
             _refreshView.Content = null;
-            Content = _scrollView;
+            SetScrollableRoot(_scrollView);
             _refreshView = null;
         }
+    }
+
+    private void SetScrollableRoot(View scrollHost)
+    {
+        _root.Children.Remove(_scrollView);
+        if (_refreshView is not null)
+        {
+            _root.Children.Remove(_refreshView);
+        }
+        _root.Children.Remove(_stickyOverlay);
+        _root.Children.Add(scrollHost);
+        _root.Children.Add(_stickyOverlay);
+        Content = _root;
     }
 
     private void OnRefreshViewRefreshing(object? sender, EventArgs e)
@@ -1344,10 +1676,7 @@ public class CollectionHostView : ContentView
     private void ApplySelectionVisual(View view, object? data)
     {
         var isSelected = data is not null && _engine.Selection.IsSelected(data);
-        if (!_originalBackgrounds.ContainsKey(view))
-        {
-            _originalBackgrounds[view] = view.Background;
-        }
+        _originalBackgrounds.TryAdd(view, view.Background);
 
         view.Background = isSelected
             ? new SolidColorBrush(SelectedBackgroundColor)
@@ -1388,6 +1717,7 @@ public class CollectionHostView : ContentView
     {
         DetachSelectionTap(view);
         ClearSelectionVisual(view);
+        _originalBackgrounds.Remove(view);
         // Reset visual state to prevent stale properties leaking into reuse
         view.BindingContext = null;
         view.Opacity = 1d;

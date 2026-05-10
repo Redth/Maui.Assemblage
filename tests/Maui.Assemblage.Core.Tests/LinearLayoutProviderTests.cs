@@ -48,4 +48,24 @@ public class LinearLayoutProviderTests
             item => Assert.Equal(new LayoutRect(0d, 0d, 80d, 200d), item.Frame),
             item => Assert.Equal(new LayoutRect(100d, 0d, 80d, 200d), item.Frame));
     }
+
+    [Fact]
+    public void InvalidateExtents_RebuildsVariableExtentPrefixSums()
+    {
+        var extents = new[] { 40d, 40d, 40d };
+        var provider = new LinearLayoutProvider(
+            itemExtent: 40d,
+            orientation: LayoutOrientation.Vertical,
+            itemExtentResolver: index => extents[index]);
+        var context = new LayoutContext(ItemCount: 3, ViewportWidth: 300d, ViewportHeight: 600d);
+
+        var initial = provider.Arrange(context, new ItemRange(0, 3));
+        extents[1] = 80d;
+        provider.InvalidateExtents();
+        var updated = provider.Arrange(context, new ItemRange(0, 3));
+
+        Assert.Equal(120d, initial.ContentHeight);
+        Assert.Equal(160d, updated.ContentHeight);
+        Assert.Equal(new LayoutRect(0d, 120d, 300d, 40d), updated.Items[2].Frame);
+    }
 }

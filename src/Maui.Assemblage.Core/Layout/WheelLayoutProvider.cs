@@ -6,7 +6,7 @@ namespace Maui.Assemblage.Core.Layout;
 /// to the iOS UIPickerView. Center items appear flat and full-size; side items
 /// curve away with reduced scale and opacity.
 /// </summary>
-public sealed class WheelLayoutProvider : ISnappingLayoutProvider
+public sealed class WheelLayoutProvider : ISnappingLayoutProvider, IVisibleRangeProvider
 {
     public WheelLayoutProvider(
         double itemHeight = 44d,
@@ -125,5 +125,20 @@ public sealed class WheelLayoutProvider : ISnappingLayoutProvider
         var rawIndex = projectedOffset / ItemHeight;
         var snapped = (int)Math.Round(rawIndex, MidpointRounding.AwayFromZero);
         return Math.Clamp(snapped, 0, itemCount - 1);
+    }
+
+    public ItemRange GetVisibleRange(LayoutContext context)
+    {
+        if (context.ItemCount <= 0)
+        {
+            return ItemRange.Empty;
+        }
+
+        var safeOffset = Math.Max(0d, context.ScrollOffset);
+        var first = (int)Math.Floor(safeOffset / ItemHeight);
+        var last = (int)Math.Floor((safeOffset + Math.Max(0d, context.ViewportHeight)) / ItemHeight);
+        return new ItemRange(
+            Math.Clamp(first, 0, context.ItemCount),
+            Math.Clamp(last + 1, 0, context.ItemCount));
     }
 }

@@ -63,11 +63,29 @@ public partial class ContactsPage : ContentPage
             avatar.Content = avatarLabel;
 
             var info = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
-            var name = new Label { FontSize = 16, FontAttributes = FontAttributes.Bold };
+            var name = new Label
+            {
+                FontSize = 16,
+                FontAttributes = FontAttributes.Bold,
+                MaxLines = 1,
+                LineBreakMode = LineBreakMode.TailTruncation,
+            };
             name.SetBinding(Label.TextProperty, "Name");
-            var dept = new Label { FontSize = 12, TextColor = Color.FromArgb("#888888") };
+            var dept = new Label
+            {
+                FontSize = 12,
+                TextColor = Color.FromArgb("#888888"),
+                MaxLines = 1,
+                LineBreakMode = LineBreakMode.TailTruncation,
+            };
             dept.SetBinding(Label.TextProperty, "Department");
-            var email = new Label { FontSize = 11, TextColor = Color.FromArgb("#AAAAAA") };
+            var email = new Label
+            {
+                FontSize = 11,
+                TextColor = Color.FromArgb("#AAAAAA"),
+                MaxLines = 1,
+                LineBreakMode = LineBreakMode.TailTruncation,
+            };
             email.SetBinding(Label.TextProperty, "Email");
             info.Children.Add(name);
             info.Children.Add(dept);
