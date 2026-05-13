@@ -31,6 +31,18 @@ public class ScrollRequestResolverTests
     }
 
     [Fact]
+    public void ToEnd_Horizontal_UsesContentWidth()
+    {
+        var request = ScrollRequest.ToEnd();
+        var provider = new LinearLayoutProvider(50d, spacing: 0d, LayoutOrientation.Horizontal);
+        var context = new LayoutContext(20, 400d, 600d);
+
+        var offset = ScrollRequestResolver.Resolve(request, provider, context, null, LayoutOrientation.Horizontal);
+
+        Assert.Equal(600d, offset);
+    }
+
+    [Fact]
     public void ToOffset_ClampsToZero()
     {
         var request = ScrollRequest.ToOffset(-100d);
@@ -65,6 +77,18 @@ public class ScrollRequestResolverTests
 
         // Item 5 at Y = 5 * (50 + 2) = 260
         Assert.Equal(260d, offset);
+    }
+
+    [Fact]
+    public void ToItem_SnappingLayout_UsesSnapOffset()
+    {
+        var request = ScrollRequest.ToItem(0, 5);
+        var provider = new CarouselLayoutProvider(peekAmount: 40d, itemSpacing: 10d);
+        var context = new LayoutContext(20, 400d, 600d);
+
+        var offset = ScrollRequestResolver.Resolve(request, provider, context, null, LayoutOrientation.Horizontal);
+
+        Assert.Equal(1_650d, offset);
     }
 
     [Fact]

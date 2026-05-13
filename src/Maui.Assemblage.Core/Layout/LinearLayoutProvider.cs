@@ -1,6 +1,6 @@
 namespace Maui.Assemblage.Core.Layout;
 
-public sealed class LinearLayoutProvider : ILayoutProvider
+public sealed class LinearLayoutProvider : ILayoutProvider, IVisibleRangeProvider, IVariableExtentLayoutProvider
 {
     private readonly Func<int, double>? _itemExtentResolver;
 
@@ -136,5 +136,102 @@ public sealed class LinearLayoutProvider : ILayoutProvider
         }
 
         return new InvalidationPlan(true, context.AffectedRange);
+    }
+
+    public void InvalidateExtents()
+    {
+        _prefixSums = null;
+        _prefixSumCount = 0;
+    }
+
+    public ItemRange GetVisibleRange(LayoutContext context)
+    {
+        if (context.ItemCount <= 0)
+        {
+            return ItemRange.Empty;
+        }
+
+        return _itemExtentResolver is null
+            ? GetUniformVisibleRange(context)
+            : GetVariableVisibleRange(context);
+    }
+
+    private ItemRange GetUniformVisibleRange(LayoutContext context)
+    {
+        var pitch = ItemExtent + Spacing;
+        var viewportSize = Orientation == LayoutOrientation.Vertical
+            ? context.ViewportHeight
+            : context.ViewportWidth;
+        var safeOffset = Math.Max(0d, context.ScrollOffset);
+        var safeViewport = Math.Max(0d, viewportSize);
+        var firstVisible = (int)Math.Floor(safeOffset / pitch);
+        var endEdge = safeOffset + safeViewport;
+        var lastVisible = (int)Math.Floor(Math.Max(safeOffset, endEdge - double.Epsilon) / pitch);
+        return new ItemRange(
+            Math.Clamp(firstVisible, 0, context.ItemCount),
+            Math.Clamp(lastVisible + 1, 0, context.ItemCount));
+    }
+
+    private ItemRange GetVariableVisibleRange(LayoutContext context)
+    {
+        EnsurePrefixSums(context.ItemCount);
+        var viewportSize = Orientation == LayoutOrientation.Vertical
+            ? context.ViewportHeight
+            : context.ViewportWidth;
+        var safeOffset = Math.Max(0d, context.ScrollOffset);
+        var viewportEnd = safeOffset + Math.Max(0d, viewportSize);
+        var start = FindFirstIndexAfter(safeOffset);
+        var end = FindFirstIndexStartingAfter(viewportEnd) + 1;
+        return new ItemRange(
+            Math.Clamp(start, 0, context.ItemCount),
+            Math.Clamp(end, 0, context.ItemCount));
+    }
+
+    private int FindFirstIndexAfter(double offset)
+    {
+        var sums = _prefixSums!;
+        var lo = 0;
+        var hi = _prefixSumCount - 1;
+        var result = _prefixSumCount;
+        while (lo <= hi)
+        {
+            var mid = lo + (hi - lo) / 2;
+            if (sums[mid] > offset)
+            {
+                result = mid;
+                hi = mid - 1;
+            }
+            else
+            {
+                lo = mid + 1;
+            }
+        }
+
+        return result;
+    }
+
+    private int FindFirstIndexStartingAfter(double offset)
+    {
+        var sums = _prefixSums!;
+        var lo = 0;
+        var hi = _prefixSumCount - 1;
+        var result = _prefixSumCount - 1;
+        while (lo <= hi)
+        {
+            var mid = lo + (hi - lo) / 2;
+            var extent = _itemExtentResolver!(mid) is var e && e > 0 ? e : ItemExtent;
+            var start = sums[mid] - extent;
+            if (start <= offset)
+            {
+                result = mid;
+                lo = mid + 1;
+            }
+            else
+            {
+                hi = mid - 1;
+            }
+        }
+
+        return result;
     }
 }

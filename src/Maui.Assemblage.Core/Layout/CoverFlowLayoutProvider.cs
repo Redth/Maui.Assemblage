@@ -6,7 +6,7 @@ namespace Maui.Assemblage.Core.Layout;
 /// and slide inward to create depth. Items overlap via z-index ordering.
 /// All visual parameters are fully configurable.
 /// </summary>
-public sealed class CoverFlowLayoutProvider : ISnappingLayoutProvider
+public sealed class CoverFlowLayoutProvider : ISnappingLayoutProvider, IVisibleRangeProvider
 {
     public CoverFlowLayoutProvider(
         double itemWidth,
@@ -153,5 +153,30 @@ public sealed class CoverFlowLayoutProvider : ISnappingLayoutProvider
         var rawIndex = projectedOffset / pitch;
         var snapped = (int)Math.Round(rawIndex, MidpointRounding.AwayFromZero);
         return Math.Clamp(snapped, 0, itemCount - 1);
+    }
+
+    public ItemRange GetVisibleRange(LayoutContext context)
+    {
+        if (context.ItemCount <= 0)
+        {
+            return ItemRange.Empty;
+        }
+
+        var viewportPrimary = Orientation == LayoutOrientation.Vertical
+            ? context.ViewportHeight
+            : context.ViewportWidth;
+        var pitch = ItemWidth + ItemSpacing;
+        if (pitch <= 0d)
+        {
+            return new ItemRange(0, Math.Min(context.ItemCount, 1));
+        }
+
+        var centerOffset = (viewportPrimary - ItemWidth) / 2d;
+        var safeOffset = Math.Max(0d, context.ScrollOffset);
+        var first = (int)Math.Floor((safeOffset - centerOffset - ItemWidth) / pitch);
+        var last = (int)Math.Ceiling((safeOffset + viewportPrimary - centerOffset) / pitch);
+        return new ItemRange(
+            Math.Clamp(first, 0, context.ItemCount),
+            Math.Clamp(last + 1, 0, context.ItemCount));
     }
 }

@@ -57,6 +57,12 @@ public sealed class CollectionEngine
     public LayoutOrientation ScrollAxis { get; set; } = LayoutOrientation.Vertical;
 
     /// <summary>
+    /// Whether data source notifications are applied incrementally. Hosts that cannot
+    /// safely rekey/rebind realized views can disable this to use full resets.
+    /// </summary>
+    public bool UseIncrementalChanges { get; set; } = true;
+
+    /// <summary>
     /// Optional override for template key resolution. When set, the engine uses this
     /// instead of the default node-kind-based key, enabling per-DataTemplate recycling pools.
     /// </summary>
@@ -153,7 +159,7 @@ public sealed class CollectionEngine
     /// </summary>
     public void ApplyIncrementalChanges(CollectionChangeSet changeSet)
     {
-        if (_dataSource is null || changeSet.IsReset)
+        if (!UseIncrementalChanges || _dataSource is null || changeSet.IsReset)
         {
             Rebuild();
             return;
@@ -322,14 +328,14 @@ public sealed class CollectionEngine
 
     private ItemRange ComputeVisibleRange(LayoutContext context)
     {
-        if (_lastSnapshot is null || _lastSnapshot.Items.Count == 0)
-        {
-            // Bootstrap: no previous layout, request full range so the first Arrange covers everything
-            return new ItemRange(0, context.ItemCount);
-        }
+        var visible = GetUncachedVisibleRange(context);
+        var start = Math.Max(0, visible.Start - _cacheBefore);
+        var end = Math.Min(context.ItemCount, visible.EndExclusive + _cacheAfter);
 
-        var start = Math.Max(0, EstimateFirstVisible() - _cacheBefore);
-        var end = Math.Min(context.ItemCount, EstimateLastVisible() + 1 + _cacheAfter);
+        if (end <= start && context.ItemCount > 0)
+        {
+            end = Math.Min(context.ItemCount, start + 1);
+        }
 
         // Ensure the current section's header is included so the sticky decorator can pin it.
         // Without this, a header scrolled far off-screen falls outside the range and disappears.
@@ -346,6 +352,89 @@ public sealed class CollectionEngine
         }
 
         return new ItemRange(start, end);
+    }
+
+    private ItemRange GetUncachedVisibleRange(LayoutContext context)
+    {
+        if (context.ItemCount <= 0)
+        {
+            return ItemRange.Empty;
+        }
+
+        if (_layoutProvider is IVisibleRangeProvider rangeProvider)
+        {
+            return rangeProvider.GetVisibleRange(context).Clamp(0, context.ItemCount);
+        }
+
+        if (TryEstimateVisibleRangeFromSnapshot(context, out var visibleRange))
+        {
+            return visibleRange;
+        }
+
+        if (TryEstimateVisibleRangeFromContentExtent(context, out visibleRange))
+        {
+            return visibleRange;
+        }
+
+        return new ItemRange(0, Math.Min(context.ItemCount, Math.Max(1, _cacheBefore + _cacheAfter + 1)));
+    }
+
+    private bool TryEstimateVisibleRangeFromSnapshot(LayoutContext context, out ItemRange visibleRange)
+    {
+        visibleRange = ItemRange.Empty;
+        if (_lastSnapshot is null || _lastSnapshot.Items.Count == 0)
+        {
+            return false;
+        }
+
+        var items = _lastSnapshot.Items;
+        var isHorizontal = ScrollAxis == LayoutOrientation.Horizontal;
+        var viewportEnd = _scrollOffset + (isHorizontal ? _viewportWidth : _viewportHeight);
+        var firstStart = isHorizontal ? items[0].Frame.X : items[0].Frame.Y;
+        var last = items[items.Count - 1];
+        var lastEnd = isHorizontal
+            ? last.Frame.X + last.Frame.Width
+            : last.Frame.Y + last.Frame.Height;
+
+        if (viewportEnd < firstStart || _scrollOffset > lastEnd)
+        {
+            return false;
+        }
+
+        visibleRange = new ItemRange(EstimateFirstVisible(), EstimateLastVisible() + 1)
+            .Clamp(0, context.ItemCount);
+        return true;
+    }
+
+    private bool TryEstimateVisibleRangeFromContentExtent(LayoutContext context, out ItemRange visibleRange)
+    {
+        visibleRange = ItemRange.Empty;
+        if (_lastSnapshot is null)
+        {
+            return false;
+        }
+
+        var isHorizontal = ScrollAxis == LayoutOrientation.Horizontal;
+        var contentExtent = isHorizontal ? _lastSnapshot.ContentWidth : _lastSnapshot.ContentHeight;
+        var viewportExtent = isHorizontal ? context.ViewportWidth : context.ViewportHeight;
+        if (contentExtent <= 0d || context.ItemCount <= 0)
+        {
+            return false;
+        }
+
+        var averageExtent = contentExtent / context.ItemCount;
+        if (averageExtent <= 0d)
+        {
+            return false;
+        }
+
+        var safeOffset = Math.Max(0d, context.ScrollOffset);
+        var viewportEnd = safeOffset + Math.Max(0d, viewportExtent);
+        var start = (int)Math.Floor(safeOffset / averageExtent);
+        var end = (int)Math.Ceiling(viewportEnd / averageExtent);
+        visibleRange = new ItemRange(start, Math.Max(start + 1, end))
+            .Clamp(0, context.ItemCount);
+        return true;
     }
 
     private int EstimateFirstVisible()

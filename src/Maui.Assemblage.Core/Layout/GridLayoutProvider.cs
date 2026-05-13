@@ -1,6 +1,6 @@
 namespace Maui.Assemblage.Core.Layout;
 
-public sealed class GridLayoutProvider : ILayoutProvider
+public sealed class GridLayoutProvider : ILayoutProvider, IVisibleRangeProvider
 {
     public GridLayoutProvider(
         int spanCount,
@@ -110,5 +110,33 @@ public sealed class GridLayoutProvider : ILayoutProvider
         }
 
         return new InvalidationPlan(true, context.AffectedRange);
+    }
+
+    public ItemRange GetVisibleRange(LayoutContext context)
+        => GetVisibleRange(context, SpanCount, ItemHeight, VerticalSpacing, Orientation);
+
+    internal static ItemRange GetVisibleRange(
+        LayoutContext context,
+        int spanCount,
+        double itemHeight,
+        double verticalSpacing,
+        LayoutOrientation orientation)
+    {
+        if (context.ItemCount <= 0)
+        {
+            return ItemRange.Empty;
+        }
+
+        var rowPitch = itemHeight + verticalSpacing;
+        var viewportSize = orientation == LayoutOrientation.Vertical
+            ? context.ViewportHeight
+            : context.ViewportWidth;
+        var safeOffset = Math.Max(0d, context.ScrollOffset);
+        var firstRow = (int)Math.Floor(safeOffset / rowPitch);
+        var endEdge = safeOffset + Math.Max(0d, viewportSize);
+        var lastRow = (int)Math.Floor(Math.Max(safeOffset, endEdge - double.Epsilon) / rowPitch);
+        var start = Math.Clamp(firstRow * spanCount, 0, context.ItemCount);
+        var end = Math.Clamp(((lastRow + 1) * spanCount), 0, context.ItemCount);
+        return new ItemRange(start, end);
     }
 }

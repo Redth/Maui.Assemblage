@@ -23,7 +23,7 @@
         <ma:ListHostView Grid.Row="2"
                           x:Name="ContactList"
                           AutomationId="ContactList"
-                          ItemExtent="72"
+                          ItemExtent="88"
                           StickyHeaders="True"
                           Orientation="Vertical" />
 

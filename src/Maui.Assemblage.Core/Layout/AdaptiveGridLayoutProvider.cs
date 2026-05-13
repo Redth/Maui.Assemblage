@@ -4,7 +4,7 @@ namespace Maui.Assemblage.Core.Layout;
 /// An adaptive grid layout provider that calculates the span count automatically
 /// based on a minimum item width and the available viewport width.
 /// </summary>
-public sealed class AdaptiveGridLayoutProvider : ILayoutProvider
+public sealed class AdaptiveGridLayoutProvider : ILayoutProvider, IVisibleRangeProvider
 {
     public AdaptiveGridLayoutProvider(
         double minItemWidth,
@@ -92,5 +92,14 @@ public sealed class AdaptiveGridLayoutProvider : ILayoutProvider
         }
 
         return new InvalidationPlan(false);
+    }
+
+    public ItemRange GetVisibleRange(LayoutContext context)
+    {
+        var availableWidth = Orientation == LayoutOrientation.Vertical
+            ? context.ViewportWidth
+            : context.ViewportHeight;
+        var spanCount = CalculateSpanCount(availableWidth, MinItemWidth, HorizontalSpacing);
+        return GridLayoutProvider.GetVisibleRange(context, spanCount, ItemHeight, VerticalSpacing, Orientation);
     }
 }

@@ -55,16 +55,35 @@ public class ListHostView : CollectionHostView
         UpdateLayout();
     }
 
+    protected override void OnUseMeasuredItemExtentsChanged()
+    {
+        UpdateLayout();
+    }
+
     private void UpdateLayout()
     {
+        Func<int, double>? resolver = UseMeasuredItemExtents || _itemExtentResolver is not null
+            ? ResolveItemExtent
+            : null;
         LayoutProvider = new LinearLayoutProvider(
             Math.Max(1d, ItemExtent),
             Math.Max(0d, Spacing),
             Orientation,
-            _itemExtentResolver);
+            resolver);
         ScrollDirection = Orientation == LayoutOrientation.Horizontal
             ? ScrollOrientation.Horizontal
             : ScrollOrientation.Vertical;
+    }
+
+    private double ResolveItemExtent(int index)
+    {
+        if (UseMeasuredItemExtents && TryGetMeasuredItemExtent(index, out var measuredExtent))
+        {
+            return measuredExtent;
+        }
+
+        var resolvedExtent = _itemExtentResolver?.Invoke(index) ?? ItemExtent;
+        return resolvedExtent > 0d ? resolvedExtent : ItemExtent;
     }
 }
 

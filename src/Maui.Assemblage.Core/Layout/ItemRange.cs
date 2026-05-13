@@ -12,8 +12,8 @@ public readonly record struct ItemRange(int Start, int EndExclusive)
 
     public ItemRange Clamp(int minInclusive, int maxExclusive)
     {
-        var start = Math.Max(minInclusive, Start);
-        var end = Math.Min(maxExclusive, EndExclusive);
+        var start = Math.Clamp(Start, minInclusive, maxExclusive);
+        var end = Math.Clamp(EndExclusive, minInclusive, maxExclusive);
         return end <= start ? new ItemRange(start, start) : new ItemRange(start, end);
     }
 }
